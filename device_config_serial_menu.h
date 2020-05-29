@@ -19,9 +19,11 @@
 
 #include "serial_menu.h"
 #include <CellularNetwork.h>
+#ifdef COMPONENT_QSPIF
 #include <QSPIFBlockDevice.h>
 #include <SlicingBlockDevice.h>
 #include <TDBStore.h>
+#endif // COMPONENT_QSPIF
 #include <anjay/anjay_config.h>
 #include <anjay/dm.h>
 #include <anjay/security.h>
@@ -87,10 +89,18 @@ bool should_show_menu(avs_time_duration_t max_wait_time);
 
 void show_menu_and_maybe_update_config(Lwm2mConfig &config);
 
+#ifdef COMPONENT_QSPIF
 class Lwm2mConfigPersistence {
     QSPIFBlockDevice qspi_;
-    mbed::SlicingBlockDevice sliced_qspi_;
-    mbed::TDBStore store_;
+
+    struct QspiUtils {
+        mbed::SlicingBlockDevice sliced_qspi;
+        mbed::TDBStore store;
+
+        QspiUtils(BlockDevice *bd, bd_addr_t start, bd_addr_t stop);
+        ~QspiUtils();
+    };
+    std::unique_ptr<QspiUtils> utils_;
 
 public:
     enum class Direction { STORE, RESTORE };
@@ -98,5 +108,6 @@ public:
     ~Lwm2mConfigPersistence();
     int persistence(Direction direction, Lwm2mConfig &config);
 };
+#endif // COMPONENT_QSPIF
 
 #endif // DEVICE_CONFIG_SERIAL_MENU_H

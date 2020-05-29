@@ -36,11 +36,11 @@
 #include <memory>
 
 #ifdef TARGET_DISCO_L496AG
-#    include "accelerometer.h"
-#    include "barometer.h"
-#    include "humidity.h"
-#    include "joystick.h"
-#    include "magnetometer.h"
+#include "accelerometer.h"
+#include "barometer.h"
+#include "humidity.h"
+#include "joystick.h"
+#include "magnetometer.h"
 #endif // TARGET_DISCO_L496AG
 
 #include "default_config.h"
@@ -51,8 +51,8 @@ namespace {
 anjay_t *anjay;
 
 void serve(
-           AVS_LIST(const anjay_socket_entry_t) socket_entries,
-           uint32_t timeout_ms) {
+        AVS_LIST(const anjay_socket_entry_t) socket_entries,
+        uint32_t timeout_ms) {
     auto all_sockets =
             avs::ListView<const anjay_socket_entry_t>(socket_entries);
     avs::List<avs_net_socket_t *> sockets_to_poll;
@@ -80,12 +80,12 @@ void serve_forever(
     do {
         {
             ScopedLock<Mutex> lock(anjay_mtx);
-            AVS_LIST(const anjay_socket_entry_t) socket_entries =
-                    anjay_get_socket_entries(anjay);
+            AVS_LIST(const anjay_socket_entry_t)
+            socket_entries = anjay_get_socket_entries(anjay);
 
             int timeout_ms = anjay_sched_calculate_wait_time_ms(anjay, 10);
             serve(
-                socket_entries, timeout_ms);
+                    socket_entries, timeout_ms);
             anjay_sched_run(anjay);
         }
         // Allow other tasks to be done
@@ -249,15 +249,14 @@ void lwm2m_serve() {
         }
 
         if (setup_security_object() || setup_server_object()
-                || device_object_install(anjay)
+            || device_object_install(anjay)
 #ifdef TARGET_DISCO_L496AG
-                || joystick_object_install(anjay)
-                || humidity_object_install(anjay)
-                || barometer_object_install(anjay)
-                || magnetometer_object_install(anjay)
-                || accelerometer_object_install(anjay)
+            || joystick_object_install(anjay) || humidity_object_install(anjay)
+            || barometer_object_install(anjay)
+            || magnetometer_object_install(anjay)
+            || accelerometer_object_install(anjay)
 #endif // TARGET_DISCO_L496AG
-                ) {
+        ) {
             avs_log(lwm2m, ERROR, "cannot register data model objects");
             goto finish;
         }
@@ -324,7 +323,7 @@ float cpu_usage_percent(uint64_t idle_diff, uint64_t sample_time) {
 
 void print_stats(void) {
 #if !MBED_MEM_TRACING_ENABLED || !MBED_STACK_STATS_ENABLED
-#    warning "Thread stack statistics require MBED_STACK_STATS_ENABLED and " \
+#warning "Thread stack statistics require MBED_STACK_STATS_ENABLED and " \
              "MBED_MEM_TRACING_ENABLED to be defined in mbed_app.json"
     avs_log(mbed_stats, INFO, "Thread stacks stats disabled");
 #else
@@ -347,7 +346,7 @@ void print_stats(void) {
 #endif
 
 #if !MBED_MEM_TRACING_ENABLED || !MBED_HEAP_STATS_ENABLED
-#    warning "Thread stack statistics require MBED_HEAP_STATS_ENABLED and " \
+#warning "Thread stack statistics require MBED_HEAP_STATS_ENABLED and " \
              "MBED_MEM_TRACING_ENABLED to be defined in mbed_app.json"
     avs_log(mbed_stats, INFO, "Heap usage stats disabled");
 #else
@@ -358,7 +357,7 @@ void print_stats(void) {
 #endif
 
 #if !MBED_CPU_STATS_ENABLED
-#    warning "CPU usage statistics require MBED_CPU_STATS_ENABLED to be " \
+#warning "CPU usage statistics require MBED_CPU_STATS_ENABLED to be " \
              "defined in mbed_app.json"
     avs_log(mbed_stats, INFO, "CPU usage stats disabled");
 #else
@@ -396,10 +395,59 @@ void set_modem_configuration(CellularInterface *dest, const ModemConfig &src) {
     }
 }
 
+class NetworkService {
+    NetworkInterface *iface_;
+
+public:
+    NetworkService() : iface_() {}
+
+    /**
+     * This function is responsible for simple connection management. It's
+     * supposed to:
+     *      - initialize underlying network devices & connect to the network,
+     *      - setup iface_ field to a valid NetworkInterface instance,
+     *      - (optional) setup NETWORK global variable if the network is cellular.
+     *
+     * @returns 0 on success, negative value otherwise.
+     */
+    int init(Lwm2mConfig &config) {
+        NetworkInterface *netif = NetworkInterface::get_default_instance();
+        if (!netif) {
+            return -1;
+        }
+
+        if (CellularInterface *cellular = netif->cellularInterface()) {
+            set_modem_configuration(cellular, config.modem_config);
+        }
+
+        printf("Configuring network interface\r\n");
+        for (int retry = 0;
+             netif->get_connection_status() != NSAPI_STATUS_GLOBAL_UP;
+             ++retry) {
+            printf("connect, retry = %d\r\n", retry);
+            nsapi_error_t err = netif->connect();
+            printf("connect result = %d\r\n", err);
+        }
+
+        if (CellularDevice *device = CellularDevice::get_default_instance()) {
+            NETWORK = device->open_network();
+            NETWORK->set_access_technology(config.modem_config.rat);
+        }
+
+        iface_ = netif;
+        return 0;
+    }
+
+    NetworkInterface *get_network_interface() {
+        return iface_;
+    }
+};
+
 } // namespace
 
 int main() {
     {
+#ifdef COMPONENT_QSPIF
         Lwm2mConfigPersistence config_persistence;
         if (config_persistence.persistence(
                     Lwm2mConfigPersistence::Direction::RESTORE,
@@ -408,16 +456,19 @@ int main() {
                    "flash. Possible cause: device is booted up right after "
                    "factory reset or data on flash is corrupted.\n");
         }
+#endif // COMPONENT_QSPIF
         printf("\nPress any key in 3 seconds to enter device configuration "
                "menu...\n");
         if (should_show_menu(avs_time_duration_from_scalar(3, AVS_TIME_S))) {
             show_menu_and_maybe_update_config(SERIAL_MENU_CONFIG);
+#ifdef COMPONENT_QSPIF
             if (config_persistence.persistence(
                         Lwm2mConfigPersistence::Direction::STORE,
                         SERIAL_MENU_CONFIG)) {
                 printf("[INFO] Error occurred during saving configuration into "
                        "flash.\n");
             }
+#endif // COMPONENT_QSPIF
         }
     }
 
@@ -437,23 +488,19 @@ int main() {
     // required to initialize hardware RNG used by default.
     mbedtls_platform_setup(NULL);
 
-    CellularDevice *device = CellularDevice::get_default_instance();
-    CellularInterface *netif = CellularContext::get_default_instance();
-    set_modem_configuration(netif, SERIAL_MENU_CONFIG.modem_config);
+    NetworkService ns{};
+    if (ns.init(SERIAL_MENU_CONFIG)) {
+        printf("[ERROR] The target platform you're using does not have network "
+               "configuration pre-implemented. Please see the NetworkService "
+               "class (defined in main.cpp) for more details.\n");
 
-    printf("Configuring modem to use GSM\r\n");
-    for (int retry = 0;
-         netif->get_connection_status() != NSAPI_STATUS_GLOBAL_UP;
-         ++retry) {
-        printf("connect, retry = %d\r\n", retry);
-        nsapi_error_t err = netif->connect();
-        printf("connect result = %d\r\n", err);
+        for (;;) {
+            ThisThread::sleep_for(1000);
+        }
     }
 
     {
-        AvsSocketGlobal avs(netif, 32, 1536, AVS_NET_AF_INET4);
-        NETWORK = device->open_network();
-        NETWORK->set_access_technology(SERIAL_MENU_CONFIG.modem_config.rat);
+        AvsSocketGlobal avs(ns.get_network_interface(), 32, 1536, AVS_NET_AF_INET4);
 
         thread_lwm2m.start([]() { lwm2m_serve(); });
         thread_lwm2m_notify.start([]() { lwm2m_check_for_notifications(); });

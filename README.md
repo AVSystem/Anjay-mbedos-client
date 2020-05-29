@@ -3,11 +3,16 @@
 
 ## Supported hardware and overview
 
-This example project targets the STM32L496AG-DISCOVERY development kit
+This example project mainly targets the STM32L496AG-DISCOVERY development kit
 [P-L496G-CELL02](https://www.st.com/en/evaluation-tools/p-l496g-cell02.html)
 along with the optional
 [X-NUCLEO-IKS02A1](https://www.st.com/en/ecosystems/x-nucleo-iks02a1.html)
 sensor board.
+
+However, the code should run with basic functionality on any officially supported board by mbedOS:
+https://os.mbed.com/platforms, having at least 512K flash and 32K of memory and additional SPI
+chip for configuration persistence, with the exception that the network setup will need to be
+implemented (see NetworkService class in main.cpp).
 
 It uses [mbedOS](https://www.mbed.com/en/platform/mbed-os/) as the base
 operating system.
