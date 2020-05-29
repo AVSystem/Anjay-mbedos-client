@@ -15,14 +15,12 @@
  */
 
 #include "device_config_serial_menu.h"
-#include <avs_qspi.h>
 #include "default_config.h"
 #include <avsystem/commons/avs_url.h>
 #include <cctype>
 #include <mbed.h>
 #include <sstream>
 
-using namespace avs;
 using namespace std;
 
 namespace {
@@ -369,22 +367,25 @@ Lwm2mConfig::Lwm2mConfig()
                                         PSK_IDENTITY,
                                         PSK_KEY),
                       AVS_LOG_DEBUG
-                      ) {}
+          ) {
+}
 
-constexpr size_t CONFIG_PERSISTENCE_SIZE = 2 * QSPI_ERASE_PAGE_SIZE;
-
-constexpr bd_addr_t CONFIG_PERSISTENCE_ADDR_BEGIN =
-        QSPI_FLASH_SIZE - CONFIG_PERSISTENCE_SIZE;
-
-constexpr bd_addr_t CONFIG_PERSISTENCE_ADDR_END =
-        CONFIG_PERSISTENCE_ADDR_BEGIN + CONFIG_PERSISTENCE_SIZE;
+#ifdef COMPONENT_QSPIF
+constexpr size_t CONFIG_PERSISTENCE_SIZE = 8192;
 
 
-AVS_STATIC_ASSERT(CONFIG_PERSISTENCE_ADDR_END <= QSPI_FLASH_SIZE,
-                  config_persistence_size_too_big);
-AVS_STATIC_ASSERT(CONFIG_PERSISTENCE_ADDR_BEGIN <= CONFIG_PERSISTENCE_ADDR_END,
-                  config_persistence_size_must_be_positive);
+Lwm2mConfigPersistence::QspiUtils::QspiUtils(BlockDevice *bd,
+                                             bd_addr_t start,
+                                             bd_addr_t stop)
+        : sliced_qspi(bd, start, stop), store(&sliced_qspi) {
+    sliced_qspi.init();
+    store.init();
+}
 
+Lwm2mConfigPersistence::QspiUtils::~QspiUtils() {
+    store.deinit();
+    sliced_qspi.deinit();
+}
 Lwm2mConfigPersistence::Lwm2mConfigPersistence()
         : qspi_(QSPI_FLASH1_IO0,
                 QSPI_FLASH1_IO1,
@@ -393,18 +394,21 @@ Lwm2mConfigPersistence::Lwm2mConfigPersistence()
                 QSPI_FLASH1_SCK,
                 QSPI_FLASH1_CSN,
                 QSPIF_POLARITY_MODE_0),
-          sliced_qspi_(&qspi_,
-                       CONFIG_PERSISTENCE_ADDR_BEGIN,
-                       CONFIG_PERSISTENCE_ADDR_END),
-          store_(&sliced_qspi_) {
+          utils_() {
     qspi_.init();
-    sliced_qspi_.init();
-    store_.init();
+    const bd_addr_t config_persistence_addr_begin =
+            qspi_.size() - CONFIG_PERSISTENCE_SIZE;
+    const bd_addr_t config_persistence_addr_end = qspi_.size();
+
+    MBED_ASSERT(config_persistence_addr_end <= qspi_.size());
+    MBED_ASSERT(config_persistence_addr_begin <= config_persistence_addr_end);
+
+    utils_ = std::make_unique<Lwm2mConfigPersistence::QspiUtils>(
+            &qspi_, config_persistence_addr_begin, config_persistence_addr_end);
 }
 
 Lwm2mConfigPersistence::~Lwm2mConfigPersistence() {
-    store_.deinit();
-    sliced_qspi_.deinit();
+    utils_.reset();
     qspi_.deinit();
 }
 
@@ -476,41 +480,48 @@ int Lwm2mConfigPersistence::persistence(Direction direction,
                                         Lwm2mConfig &config) {
     using namespace config_persistence_keys;
     int result;
-    (void) ((result = key_persistence(direction, store_, bs_server_status,
-                                      config.bs_server_config.status))
-            || (result = key_persistence(direction, store_,
+    (void) ((result =
+                     key_persistence(direction, utils_->store, bs_server_status,
+                                     config.bs_server_config.status))
+            || (result = key_persistence(direction, utils_->store,
                                          bs_server_security_mode,
                                          config.bs_server_config.security_mode))
-            || (result = key_persistence(direction, store_, bs_server_uri,
-                                         config.bs_server_config.server_uri))
-            || (result = key_persistence(direction, store_,
+            || (result =
+                        key_persistence(direction, utils_->store, bs_server_uri,
+                                        config.bs_server_config.server_uri))
+            || (result = key_persistence(direction, utils_->store,
                                          bs_server_psk_identity,
                                          config.bs_server_config.psk_identity))
-            || (result = key_persistence(direction, store_, bs_server_psk_key,
+            || (result = key_persistence(direction, utils_->store,
+                                         bs_server_psk_key,
                                          config.bs_server_config.psk_key))
-            || (result = key_persistence(direction, store_, rg_server_status,
+            || (result = key_persistence(direction, utils_->store,
+                                         rg_server_status,
                                          config.rg_server_config.status))
-            || (result = key_persistence(direction, store_,
+            || (result = key_persistence(direction, utils_->store,
                                          rg_server_security_mode,
                                          config.rg_server_config.security_mode))
-            || (result = key_persistence(direction, store_, rg_server_uri,
-                                         config.rg_server_config.server_uri))
-            || (result = key_persistence(direction, store_,
+            || (result =
+                        key_persistence(direction, utils_->store, rg_server_uri,
+                                        config.rg_server_config.server_uri))
+            || (result = key_persistence(direction, utils_->store,
                                          rg_server_psk_identity,
                                          config.rg_server_config.psk_identity))
-            || (result = key_persistence(direction, store_, rg_server_psk_key,
+            || (result = key_persistence(direction, utils_->store,
+                                         rg_server_psk_key,
                                          config.rg_server_config.psk_key))
-            || (result = key_persistence(direction, store_, log_level,
+            || (result = key_persistence(direction, utils_->store, log_level,
                                          config.log_level))
-            || (result = key_persistence(direction, store_, apn,
+            || (result = key_persistence(direction, utils_->store, apn,
                                          config.modem_config.apn))
-            || (result = key_persistence(direction, store_, username,
+            || (result = key_persistence(direction, utils_->store, username,
                                          config.modem_config.username))
-            || (result = key_persistence(direction, store_, password,
+            || (result = key_persistence(direction, utils_->store, password,
                                          config.modem_config.password))
-            || (result = key_persistence(direction, store_, sim_pin_code,
+            || (result = key_persistence(direction, utils_->store, sim_pin_code,
                                          config.modem_config.sim_pin_code))
-            || (result = key_persistence(direction, store_, rat,
+            || (result = key_persistence(direction, utils_->store, rat,
                                          config.modem_config.rat)));
     return result;
 }
+#endif // COMPONENT_QSPIF
