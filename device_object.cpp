@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2021 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,8 @@
 #include <avsystem/commons/avs_log.h>
 #include <avsystem/commons/avs_memory.h>
 
+#include "mbed_power_mgmt.h"
+
 #include "device_object.h"
 
 #define DEVICE_OBJ_LOG(...) avs_log(device_obj, __VA_ARGS__)
@@ -51,13 +53,6 @@
 #define RID_MODEL_NUMBER 1
 
 /**
- * Serial Number: R, Single, Optional
- * type: string, range: N/A, unit: N/A
- * Serial Number
- */
-#define RID_SERIAL_NUMBER 2
-
-/**
  * Firmware Version: R, Single, Optional
  * type: string, range: N/A, unit: N/A
  * Current firmware version of the Device.The Firmware Management
@@ -72,63 +67,6 @@
  * failure.
  */
 #define RID_REBOOT 4
-
-/**
- * Factory Reset: E, Single, Optional
- * type: N/A, range: N/A, unit: N/A
- * Perform factory reset of the LwM2M Device to make the LwM2M Device to
- * go through initial deployment sequence where provisioning and
- * bootstrap sequence is performed. This requires client ensuring post
- * factory reset to have minimal information to allow it to carry out one
- * of the bootstrap methods specified in section 5.2.3.  When this
- * Resource is executed, "De-register" operation MAY be sent to the LwM2M
- * Server(s) before factory reset of the LwM2M Device.
- */
-#define RID_FACTORY_RESET 5
-
-/**
- * Available Power Sources: R, Multiple, Optional
- * type: integer, range: 0..7, unit: N/A
- * 0: DC power 1: Internal Battery 2: External Battery 3: Fuel Cell 4:
- * Power over Ethernet 5: USB 6: AC (Mains) power 7: Solar The same
- * Resource Instance ID MUST be used to associate a given Power Source
- * (Resource ID:6) with its Present Voltage (Resource ID:7) and its
- * Present Current (Resource ID:8)
- */
-#define RID_AVAILABLE_POWER_SOURCES 6
-
-/**
- * Power Source Voltage: R, Multiple, Optional
- * type: integer, range: N/A, unit: N/A
- * Present voltage for each Available Power Sources Resource Instance.
- * The unit used for this resource is in mV.
- */
-#define RID_POWER_SOURCE_VOLTAGE 7
-
-/**
- * Power Source Current: R, Multiple, Optional
- * type: integer, range: N/A, unit: N/A
- * Present current for each Available Power Source. The unit used for
- * this resource is in mA.
- */
-#define RID_POWER_SOURCE_CURRENT 8
-
-/**
- * Battery Level: R, Single, Optional
- * type: integer, range: 0..100, unit: %
- * Contains the current battery level as a percentage (with a range from
- * 0 to 100). This value is only valid for the Device internal Battery if
- * present (one Available Power Sources Resource Instance is 1).
- */
-#define RID_BATTERY_LEVEL 9
-
-/**
- * Memory Free: R, Single, Optional
- * type: integer, range: N/A, unit: N/A
- * Estimated current available amount of storage space which can store
- * data and software in the LwM2M Device (expressed in kilobytes).
- */
-#define RID_MEMORY_FREE 10
 
 /**
  * Error Code: R, Multiple, Mandatory
@@ -151,16 +89,6 @@
 #define RID_ERROR_CODE 11
 
 /**
- * Reset Error Code: E, Single, Optional
- * type: N/A, range: N/A, unit: N/A
- * Delete all error code Resource Instances and create only one zero-
- * value error code that implies no error, then re-evaluate all error
- * conditions and update and create Resources Instances to capture all
- * current error conditions.
- */
-#define RID_RESET_ERROR_CODE 12
-
-/**
  * Current Time: RW, Single, Optional
  * type: time, range: N/A, unit: N/A
  * Current UNIX time of the LwM2M Client. The LwM2M Client should be
@@ -171,43 +99,12 @@
 #define RID_CURRENT_TIME 13
 
 /**
- * UTC Offset: RW, Single, Optional
- * type: string, range: N/A, unit: N/A
- * Indicates the UTC offset currently in effect for this LwM2M Device.
- * UTC+X [ISO 8601].
- */
-#define RID_UTC_OFFSET 14
-
-/**
- * Timezone: RW, Single, Optional
- * type: string, range: N/A, unit: N/A
- * Indicates in which time zone the LwM2M Device is located, in IANA
- * Timezone (TZ) database format.
- */
-#define RID_TIMEZONE 15
-
-/**
  * Supported Binding and Modes: R, Single, Mandatory
  * type: string, range: N/A, unit: N/A
  * Indicates which bindings and modes are supported in the LwM2M Client.
  * The possible values are those listed in the LwM2M Core Specification.
  */
 #define RID_SUPPORTED_BINDING_AND_MODES 16
-
-/**
- * Device Type: R, Single, Optional
- * type: string, range: N/A, unit: N/A
- * Type of the device (manufacturer specified string: e.g. smart meters /
- * dev Class / ...)
- */
-#define RID_DEVICE_TYPE 17
-
-/**
- * Hardware Version: R, Single, Optional
- * type: string, range: N/A, unit: N/A
- * Current hardware version of the device
- */
-#define RID_HARDWARE_VERSION 18
 
 /**
  * Software Version: R, Single, Optional
@@ -220,44 +117,11 @@
  */
 #define RID_SOFTWARE_VERSION 19
 
-/**
- * Battery Status: R, Single, Optional
- * type: integer, range: 0..6, unit: N/A
- * This value is only valid for the Device Internal Battery if present
- * (one Available Power Sources Resource Instance value is 1). Battery
- * Status  Meaning Description 0       Normal  The battery is operating
- * normally and not on power. 1       Charging        The battery is
- * currently charging. 2       Charge Complete The battery is fully
- * charged and still on power. 3       Damaged The battery has some
- * problem. 4       Low Battery     The battery is low on charge. 5
- * Not Installed   The battery is not installed. 6       Unknown The
- * battery information is not available.
- */
-#define RID_BATTERY_STATUS 20
-
-/**
- * Memory Total: R, Single, Optional
- * type: integer, range: N/A, unit: N/A
- * Total amount of storage space which can store data and software in the
- * LwM2M Device (expressed in kilobytes).
- */
-#define RID_MEMORY_TOTAL 21
-
-/**
- * ExtDevInfo: R, Multiple, Optional
- * type: objlnk, range: N/A, unit: N/A
- * Reference to external "Device" object instance containing information.
- * For example, such an external device can be a Host Device, which is a
- * device into which the Device containing the LwM2M client is embedded.
- * This Resource may be used to retrieve information about the Host
- * Device.
- */
-#define RID_EXTDEVINFO 22
-
 typedef struct device_struct {
     const anjay_dm_object_def_t *def;
 
     avs_time_duration_t current_time_offset;
+    bool reboot;
 } device_t;
 
 static inline device_t *get_obj(const anjay_dm_object_def_t *const *obj_ptr) {
@@ -291,45 +155,16 @@ static int list_resources(anjay_t *anjay,
                       ANJAY_DM_RES_PRESENT);
     anjay_dm_emit_res(ctx, RID_MODEL_NUMBER, ANJAY_DM_RES_R,
                       ANJAY_DM_RES_PRESENT);
-    anjay_dm_emit_res(ctx, RID_SERIAL_NUMBER, ANJAY_DM_RES_R,
-                      ANJAY_DM_RES_PRESENT);
     anjay_dm_emit_res(ctx, RID_FIRMWARE_VERSION, ANJAY_DM_RES_R,
                       ANJAY_DM_RES_PRESENT);
     anjay_dm_emit_res(ctx, RID_REBOOT, ANJAY_DM_RES_E, ANJAY_DM_RES_PRESENT);
-    anjay_dm_emit_res(ctx, RID_FACTORY_RESET, ANJAY_DM_RES_E,
-                      ANJAY_DM_RES_PRESENT);
-    anjay_dm_emit_res(ctx, RID_AVAILABLE_POWER_SOURCES, ANJAY_DM_RES_RM,
-                      ANJAY_DM_RES_PRESENT);
-    anjay_dm_emit_res(ctx, RID_POWER_SOURCE_VOLTAGE, ANJAY_DM_RES_RM,
-                      ANJAY_DM_RES_PRESENT);
-    anjay_dm_emit_res(ctx, RID_POWER_SOURCE_CURRENT, ANJAY_DM_RES_RM,
-                      ANJAY_DM_RES_PRESENT);
-    anjay_dm_emit_res(ctx, RID_BATTERY_LEVEL, ANJAY_DM_RES_R,
-                      ANJAY_DM_RES_PRESENT);
-    anjay_dm_emit_res(ctx, RID_MEMORY_FREE, ANJAY_DM_RES_R,
-                      ANJAY_DM_RES_PRESENT);
     anjay_dm_emit_res(ctx, RID_ERROR_CODE, ANJAY_DM_RES_RM,
-                      ANJAY_DM_RES_PRESENT);
-    anjay_dm_emit_res(ctx, RID_RESET_ERROR_CODE, ANJAY_DM_RES_E,
                       ANJAY_DM_RES_PRESENT);
     anjay_dm_emit_res(ctx, RID_CURRENT_TIME, ANJAY_DM_RES_RW,
                       ANJAY_DM_RES_PRESENT);
-    anjay_dm_emit_res(ctx, RID_UTC_OFFSET, ANJAY_DM_RES_RW,
-                      ANJAY_DM_RES_PRESENT);
-    anjay_dm_emit_res(ctx, RID_TIMEZONE, ANJAY_DM_RES_RW, ANJAY_DM_RES_PRESENT);
     anjay_dm_emit_res(ctx, RID_SUPPORTED_BINDING_AND_MODES, ANJAY_DM_RES_R,
                       ANJAY_DM_RES_PRESENT);
-    anjay_dm_emit_res(ctx, RID_DEVICE_TYPE, ANJAY_DM_RES_R,
-                      ANJAY_DM_RES_PRESENT);
-    anjay_dm_emit_res(ctx, RID_HARDWARE_VERSION, ANJAY_DM_RES_R,
-                      ANJAY_DM_RES_PRESENT);
     anjay_dm_emit_res(ctx, RID_SOFTWARE_VERSION, ANJAY_DM_RES_R,
-                      ANJAY_DM_RES_PRESENT);
-    anjay_dm_emit_res(ctx, RID_BATTERY_STATUS, ANJAY_DM_RES_R,
-                      ANJAY_DM_RES_PRESENT);
-    anjay_dm_emit_res(ctx, RID_MEMORY_TOTAL, ANJAY_DM_RES_R,
-                      ANJAY_DM_RES_PRESENT);
-    anjay_dm_emit_res(ctx, RID_EXTDEVINFO, ANJAY_DM_RES_RM,
                       ANJAY_DM_RES_PRESENT);
     return 0;
 }
@@ -377,37 +212,13 @@ static int resource_read(anjay_t *anjay,
         assert(riid == ANJAY_ID_INVALID);
         return anjay_ret_string(ctx, model_number());
 
-    case RID_SERIAL_NUMBER:
-        assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_string(ctx, "00000000");
-
     case RID_FIRMWARE_VERSION:
         assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_string(ctx, "1.0");
-
-    case RID_AVAILABLE_POWER_SOURCES:
-        assert(riid == 0);
-        return anjay_ret_i32(ctx, 0); // TODO
-
-    case RID_POWER_SOURCE_VOLTAGE:
-        assert(riid == 0);
-        return anjay_ret_i32(ctx, 5000);
-
-    case RID_POWER_SOURCE_CURRENT:
-        assert(riid == 0);
-        return anjay_ret_i32(ctx, 2000);
-
-    case RID_BATTERY_LEVEL:
-        assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_i32(ctx, 0); // TODO
-
-    case RID_MEMORY_FREE:
-        assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_i32(ctx, 0); // TODO
+        return anjay_ret_string(ctx, "21.02");
 
     case RID_ERROR_CODE:
         assert(riid == 0);
-        return anjay_ret_i32(ctx, 0); // TODO
+        return anjay_ret_i32(ctx, 0);
 
     case RID_CURRENT_TIME: {
         assert(riid == ANJAY_ID_INVALID);
@@ -420,41 +231,14 @@ static int resource_read(anjay_t *anjay,
         }
         return anjay_ret_i64(ctx, seconds_since_unix_epoch);
     }
-    case RID_UTC_OFFSET:
-        assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_string(ctx, ""); // TODO
-
-    case RID_TIMEZONE:
-        assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_string(ctx, ""); // TODO
 
     case RID_SUPPORTED_BINDING_AND_MODES:
         assert(riid == ANJAY_ID_INVALID);
         return anjay_ret_string(ctx, "UQ");
 
-    case RID_DEVICE_TYPE:
-        assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_string(ctx, ""); // TODO
-
-    case RID_HARDWARE_VERSION:
-        assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_string(ctx, ""); // TODO
-
     case RID_SOFTWARE_VERSION:
         assert(riid == ANJAY_ID_INVALID);
         return anjay_ret_string(ctx, anjay_get_version());
-
-    case RID_BATTERY_STATUS:
-        assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_i32(ctx, 0); // TODO
-
-    case RID_MEMORY_TOTAL:
-        assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_i32(ctx, 0); // TODO
-
-    case RID_EXTDEVINFO:
-        assert(riid == 0);
-        return anjay_ret_objlnk(ctx, 0, 0); // TODO
 
     default:
         return ANJAY_ERR_METHOD_NOT_ALLOWED;
@@ -487,8 +271,6 @@ static int resource_write(anjay_t *anjay,
                 avs_time_real_now());
         return 0;
     }
-    case RID_UTC_OFFSET:
-    case RID_TIMEZONE:
     default:
         return ANJAY_ERR_METHOD_NOT_ALLOWED;
     }
@@ -507,13 +289,8 @@ static int resource_execute(anjay_t *anjay,
 
     switch (rid) {
     case RID_REBOOT:
-        return ANJAY_ERR_NOT_IMPLEMENTED; // TODO
-
-    case RID_FACTORY_RESET:
-        return ANJAY_ERR_NOT_IMPLEMENTED; // TODO
-
-    case RID_RESET_ERROR_CODE:
-        return ANJAY_ERR_NOT_IMPLEMENTED; // TODO
+        obj->reboot = true;
+        return 0;
 
     default:
         return ANJAY_ERR_METHOD_NOT_ALLOWED;
@@ -532,11 +309,7 @@ static int list_resource_instances(anjay_t *anjay,
     assert(iid == 0);
 
     switch (rid) {
-    case RID_AVAILABLE_POWER_SOURCES:
-    case RID_POWER_SOURCE_VOLTAGE:
-    case RID_POWER_SOURCE_CURRENT:
     case RID_ERROR_CODE:
-    case RID_EXTDEVINFO:
         anjay_dm_emit(ctx, 0);
         return 0;
     default:
@@ -605,4 +378,17 @@ void device_object_uninstall(anjay_t *anjay) {
         }
         device_object_release(&OBJ_DEF_PTR);
     }
+}
+
+void device_object_update(anjay_t *anjay) {
+    if (!OBJ_DEF_PTR) {
+        return;
+    }
+    device_t *obj = get_obj(OBJ_DEF_PTR);
+
+    if (obj->reboot) {
+        DEVICE_OBJ_LOG(INFO, "Rebooting...\n");
+        system_reset();
+    }
+    anjay_notify_changed(anjay, 3, 0, RID_CURRENT_TIME);
 }

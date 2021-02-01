@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2021 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -298,6 +298,7 @@ void lwm2m_check_for_notifications(void) {
     while (true) {
         {
             ScopedLock<Mutex> lock(anjay_mtx);
+            device_object_update(anjay);
 #ifdef TARGET_DISCO_L496AG
             humidity_object_update(anjay);
             barometer_object_update(anjay);
@@ -309,7 +310,6 @@ void lwm2m_check_for_notifications(void) {
         ThisThread::sleep_for(1000);
     }
 }
-
 
 const int STATS_SAMPLE_TIME_MS = 15000;
 
