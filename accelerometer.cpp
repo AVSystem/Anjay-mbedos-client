@@ -22,6 +22,9 @@
  *
  * This IPSO object can be used to represent a 1-3 axis accelerometer.
  */
+
+#if (SENSORS_IKS01A2 == 1)
+
 #include <algorithm>
 #include <assert.h>
 #include <stdbool.h>
@@ -31,15 +34,14 @@
 #include <avsystem/commons/avs_list_cxx.hpp>
 #include <avsystem/commons/avs_log.h>
 
-#ifdef TARGET_DISCO_L496AG
 
-#    include <XNucleoIKS01A2.h>
+#include <XNucleoIKS01A2.h>
 
-#    include "accelerometer.h"
+#include "accelerometer.h"
 
-#    define ACCELEROMETER_OBJ_LOG(...) avs_log(accelerometer_obj, __VA_ARGS__)
+#define ACCELEROMETER_OBJ_LOG(...) avs_log(accelerometer_obj, __VA_ARGS__)
 
-#    define SENSOR_ID LSM303AGR_ACC_WHO_AM_I
+#define SENSOR_ID LSM303AGR_ACC_WHO_AM_I
 
 using namespace std;
 
@@ -253,4 +255,4 @@ void accelerometer_object_update(anjay_t *anjay) {
     }
 }
 
-#endif // TARGET_DISCO_L496AG
+#endif // SENSORS_IKS01A2

@@ -19,14 +19,23 @@
 
 #include <anjay/anjay.h>
 
-#ifdef TARGET_DISCO_L496AG
+#if (SENSORS_IKS01A2 == 1)
 
 int magnetometer_object_install(anjay_t *anjay);
-
 void magnetometer_object_uninstall(anjay_t *anjay);
-
 void magnetometer_object_update(anjay_t *anjay);
 
-#endif // TARGET_DISCO_L496AG
+#else  // Dummy functions in case sensor not present
 
+int magnetometer_object_install(anjay_t *anjay) {
+    return 0;
+}
+
+void magnetometer_object_uninstall(anjay_t *anjay) {
+}
+
+void magnetometer_object_update(anjay_t *anjay) {
+}
+
+#endif // SENSORS_IKS01A2
 #endif // MAGNETOMETER_OBJECT_H

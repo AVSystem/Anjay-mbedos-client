@@ -19,18 +19,26 @@
 
 #include <anjay/anjay.h>
 
-#ifdef TARGET_DISCO_L496AG
+#if (SENSORS_IKS01A2 == 1)
 
-#    define HUMIDITY_OID 3304
-
-#    define HUMIDITY_RID_SENSOR_VALUE 5700
+#define HUMIDITY_OID 3304
+#define HUMIDITY_RID_SENSOR_VALUE 5700
 
 int humidity_object_install(anjay_t *anjay);
-
 void humidity_object_uninstall(anjay_t *anjay);
-
 void humidity_object_update(anjay_t *anjay);
 
-#endif // TARGET_DISCO_L496AG
+#else // No sensor board present, define dummy functions
 
+int humidity_object_install(anjay_t *anjay) {
+    return 0;
+}
+
+void humidity_object_uninstall(anjay_t *anjay) {
+}
+
+void humidity_object_update(anjay_t *anjay) {
+}
+
+#endif // SENSORS_IKS01A2
 #endif // HUMIDITY_OBJECT_H

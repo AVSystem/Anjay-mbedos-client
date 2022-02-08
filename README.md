@@ -1,19 +1,22 @@
 
 # Anjay-mbedos-client [<img align="right" height="50px" src="https://avsystem.github.io/Anjay-doc/_images/avsystem_logo.png">](http://www.avsystem.com/)
 
-## Supported hardware and overview
+## Supported hardware
 
 This example project mainly targets the STM32L496AG-DISCOVERY development kit
-[P-L496G-CELL02](https://www.st.com/en/evaluation-tools/p-l496g-cell02.html)
-along with the **optional**
-[X-NUCLEO-IKS02A1](https://www.st.com/en/ecosystems/x-nucleo-iks02a1.html)
-sensor board.
+[P-L496G-CELL02](https://www.st.com/en/evaluation-tools/p-l496g-cell02.html).
 
 However, the code should run with basic functionality on any [officially supported board by Mbed OS](https://os.mbed.com/platforms), having at least 512K flash and 32K of memory and additional SPI
 chip for configuration persistence, with the exception that the network setup will need to be
 implemented (see NetworkService class in main.cpp).
 
-It uses [mbed OS](https://os.mbed.com/mbed-os/) as the base operating system.
+### Sensor board X-NUCLEO-IKS01A2
+
+The application also supports **optional** [X-NUCLEO-IKS01A2](https://www.st.com/en/ecosystems/x-nucleo-iks01a2.html) sensor board. This board can be attaached on top of most STM32 boards. You can enable it via configuration `"SENSORS_IKS01A2=1"` in [`mbed_app.json`](https://github.com/AVSystem/Anjay-mbedos-client/blob/master/mbed_app.json#L3).
+
+## Overview
+
+Application uses [mbed OS](https://os.mbed.com/mbed-os/) as the base operating system.
 
 The following LwM2M Objects are supported in this application:
 
@@ -21,7 +24,10 @@ The following LwM2M Objects are supported in this application:
 - Server (/1),
 - Access Control (/2),
 - Device (/3),
-- Connectivity Monitoring (/4),
+- Connectivity Monitoring (/4).
+
+Following objects are optional depending on HW choice:
+
 - Humidity (/3304),
 - Accelerometer (/3313),
 - Magnetometer (/3314),

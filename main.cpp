@@ -35,13 +35,12 @@
 #include <mbed_trace.h>
 #include <memory>
 
-#ifdef TARGET_DISCO_L496AG
-#include "accelerometer.h"
+#include "joystick.h"       // gets activated with TARGET_DISCO_L496AG
+
+#include "accelerometer.h"  // Gets activated with SENSORS_IKS01A2=0
 #include "barometer.h"
 #include "humidity.h"
-#include "joystick.h"
 #include "magnetometer.h"
-#endif // TARGET_DISCO_L496AG
 
 #include "default_config.h"
 
@@ -250,12 +249,11 @@ void lwm2m_serve() {
 
         if (setup_security_object() || setup_server_object()
             || device_object_install(anjay)
-#ifdef TARGET_DISCO_L496AG
-            || joystick_object_install(anjay) || humidity_object_install(anjay)
+            || joystick_object_install(anjay) 
+            || humidity_object_install(anjay)
             || barometer_object_install(anjay)
             || magnetometer_object_install(anjay)
             || accelerometer_object_install(anjay)
-#endif // TARGET_DISCO_L496AG
         ) {
             avs_log(lwm2m, ERROR, "cannot register data model objects");
             goto finish;
@@ -278,13 +276,11 @@ void lwm2m_serve() {
         if (anjay) {
             conn_monitoring_object_uninstall(anjay);
             device_object_uninstall(anjay);
-#ifdef TARGET_DISCO_L496AG
             joystick_object_uninstall(anjay);
             humidity_object_uninstall(anjay);
             barometer_object_uninstall(anjay);
             magnetometer_object_uninstall(anjay);
             accelerometer_object_uninstall(anjay);
-#endif // TARGET_DISCO_L496AG
             anjay_delete(anjay);
             anjay = NULL;
         }
@@ -299,13 +295,11 @@ void lwm2m_check_for_notifications(void) {
         {
             ScopedLock<Mutex> lock(anjay_mtx);
             device_object_update(anjay);
-#ifdef TARGET_DISCO_L496AG
             humidity_object_update(anjay);
             barometer_object_update(anjay);
             joystick_object_update(anjay);
             magnetometer_object_update(anjay);
             accelerometer_object_update(anjay);
-#endif // TARGET_DISCO_L496AG
         }
         ThisThread::sleep_for(1000);
     }

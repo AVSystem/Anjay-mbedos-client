@@ -23,6 +23,8 @@
  * This IPSO object can be used to represent a 1-3 axis magnetometer with
  * optional compass direction.
  */
+#if (SENSORS_IKS01A2 == 1)
+
 #include <algorithm>
 #include <assert.h>
 #include <stdbool.h>
@@ -34,15 +36,13 @@
 
 #include <mbed.h>
 
-#ifdef TARGET_DISCO_L496AG
+#include <XNucleoIKS01A2.h>
 
-#    include <XNucleoIKS01A2.h>
+#include "magnetometer.h"
 
-#    include "magnetometer.h"
+#define MAGNETOMETER_OBJ_LOG(...) avs_log(magnetometer_obj, __VA_ARGS__)
 
-#    define MAGNETOMETER_OBJ_LOG(...) avs_log(magnetometer_obj, __VA_ARGS__)
-
-#    define SENSOR_ID LSM303AGR_MAG_WHO_AM_I
+#define SENSOR_ID LSM303AGR_MAG_WHO_AM_I
 
 using namespace std;
 
@@ -255,4 +255,4 @@ void magnetometer_object_update(anjay_t *anjay) {
     }
 }
 
-#endif // TARGET_DISCO_L496AG
+#endif // SENSORS_IKS01A2

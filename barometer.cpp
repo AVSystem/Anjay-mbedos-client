@@ -26,6 +26,8 @@
  * can be measured by the barometer sensor. An example measurement unit
  * is kPa (ucum:kPa).
  */
+#if (SENSORS_IKS01A2 == 1)
+
 #include <assert.h>
 #include <stdbool.h>
 
@@ -35,15 +37,13 @@
 #include <avsystem/commons/avs_log.h>
 #include <avsystem/commons/avs_memory.h>
 
-#ifdef TARGET_DISCO_L496AG
+#include <XNucleoIKS01A2.h>
 
-#    include <XNucleoIKS01A2.h>
+#include "barometer.h"
 
-#    include "barometer.h"
+#define BAROMETER_OBJ_LOG(...) avs_log(barometer_obj, __VA_ARGS__)
 
-#    define BAROMETER_OBJ_LOG(...) avs_log(barometer_obj, __VA_ARGS__)
-
-#    define BAROMETER_OID 3315
+#define BAROMETER_OID 3315
 
 /**
  * Min Measured Value: R, Single, Optional
@@ -328,4 +328,4 @@ void barometer_object_update(anjay_t *anjay) {
     }
 }
 
-#endif // TARGET_DISCO_L496AG
+#endif // SENSORS_IKS01A2

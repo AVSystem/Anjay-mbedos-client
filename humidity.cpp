@@ -26,6 +26,9 @@
  * be measured by the humidity sensor. An example measurement unit is
  * relative humidity as a percentage (ucum:%).
  */
+
+#if (SENSORS_IKS01A2 == 1)
+
 #include <assert.h>
 #include <stdbool.h>
 
@@ -37,15 +40,14 @@
 
 #include <mbed.h>
 
-#ifdef TARGET_DISCO_L496AG
 
-#    include <XNucleoIKS01A2.h>
+#include <XNucleoIKS01A2.h>
 
-#    include "humidity.h"
+#include "humidity.h"
 
-#    define HUMIDITY_OBJ_LOG(...) avs_log(humidity_obj, __VA_ARGS__)
+#define HUMIDITY_OBJ_LOG(...) avs_log(humidity_obj, __VA_ARGS__)
 
-#    define SENSOR_ID 0xBC
+#define SENSOR_ID 0xBC
 
 /**
  * Min Measured Value: R, Single, Optional
@@ -331,4 +333,4 @@ void humidity_object_update(anjay_t *anjay) {
     }
 }
 
-#endif // TARGET_DISCO_L496AG
+#endif // SENSORS_IKS01A2
