@@ -13,8 +13,7 @@ However, the code should run with basic functionality on any [officially support
 chip for configuration persistence, with the exception that the network setup will need to be
 implemented (see NetworkService class in main.cpp).
 
-It uses [mbed OS](https://www.mbed.com/en/platform/mbed-os/) as the base
-operating system.
+It uses [mbed OS](https://os.mbed.com/mbed-os/) as the base operating system.
 
 The following LwM2M Objects are supported in this application:
 
