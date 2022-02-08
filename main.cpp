@@ -416,6 +416,7 @@ public:
 
         NetworkInterface *netif = NetworkInterface::get_default_instance();
         if (!netif) {
+            printf("ERROR - can't get default network instance!\n");
             return -1;
         }
 
