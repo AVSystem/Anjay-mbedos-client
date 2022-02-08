@@ -411,6 +411,9 @@ public:
      * @returns 0 on success, negative value otherwise.
      */
     int init(Lwm2mConfig &config) {
+        SocketAddress sa;
+        nsapi_error_t err;
+
         NetworkInterface *netif = NetworkInterface::get_default_instance();
         if (!netif) {
             return -1;
@@ -432,6 +435,15 @@ public:
         if (CellularDevice *device = CellularDevice::get_default_instance()) {
             NETWORK = device->open_network();
             NETWORK->set_access_technology(config.modem_config.rat);
+        }
+
+        // Print IP address and MAC address, quite useful in troubleshooting
+        err = netif->get_ip_address(&sa);
+        if (err != NSAPI_ERROR_OK) {
+            printf("get_ip_address() - failed, status %d\n", err);
+        } else {
+            printf("IP: %s\n", (sa.get_ip_address() ? sa.get_ip_address() : "None"));
+            printf("MAC address: %s\n", (netif->get_mac_address() ? netif->get_mac_address() : "None"));
         }
 
         iface_ = netif;
