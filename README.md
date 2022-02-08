@@ -5,16 +5,15 @@
 
 This example project mainly targets the STM32L496AG-DISCOVERY development kit
 [P-L496G-CELL02](https://www.st.com/en/evaluation-tools/p-l496g-cell02.html)
-along with the optional
+along with the **optional**
 [X-NUCLEO-IKS02A1](https://www.st.com/en/ecosystems/x-nucleo-iks02a1.html)
 sensor board.
 
-However, the code should run with basic functionality on any officially supported board by mbedOS:
-https://os.mbed.com/platforms, having at least 512K flash and 32K of memory and additional SPI
+However, the code should run with basic functionality on any [officially supported board by Mbed OS](https://os.mbed.com/platforms), having at least 512K flash and 32K of memory and additional SPI
 chip for configuration persistence, with the exception that the network setup will need to be
 implemented (see NetworkService class in main.cpp).
 
-It uses [mbedOS](https://www.mbed.com/en/platform/mbed-os/) as the base
+It uses [mbed OS](https://www.mbed.com/en/platform/mbed-os/) as the base
 operating system.
 
 The following LwM2M Objects are supported in this application:
@@ -37,7 +36,7 @@ The following LwM2M Objects are supported in this application:
 1. Download and install [Mbed Studio](https://os.mbed.com/studio/)
 2. Start Mbed Studio, click File -> Open Workspace and pick the folder with cloned repository.
 3. In the Libraries view, and then on `(!)` button, and then Fix all, to check out all dependencies (it may take a while).
-4. You can now compile&flash project through UI.
+4. You can now compile and flash project through UI.
 
 NOTE: if you're using a built-in serial monitor, please make sure to use `115200` as a baud rate.
 
