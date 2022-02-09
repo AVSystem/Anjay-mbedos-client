@@ -6,8 +6,8 @@
 This example project mainly targets the STM32L496AG-DISCOVERY development kit
 [P-L496G-CELL02](https://www.st.com/en/evaluation-tools/p-l496g-cell02.html)
 along with the optional
-[X-NUCLEO-IKS01A2](https://www.st.com/en/ecosystems/x-nucleo-iks02a1.html#overview)
-sensor board. 
+[X-NUCLEO-IKS01A2](https://www.st.com/en/ecosystems/x-nucleo-iks01a2.html#overview)
+sensor board.
 * Note! There is a very similar [IKS02A1](https://www.st.com/en/ecosystems/x-nucleo-iks02a1.html#overview), but it has mostly different chips.
 * If you get that - please note that only the magnetometer will work as the current driver set does not support the other chips.
 
