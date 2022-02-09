@@ -30,14 +30,14 @@ void humidity_object_update(anjay_t *anjay);
 
 #else // No sensor board present, define dummy functions
 
-int humidity_object_install(anjay_t *anjay) {
+static inline int humidity_object_install(anjay_t *anjay) {
     return 0;
 }
 
-void humidity_object_uninstall(anjay_t *anjay) {
+static inline void humidity_object_uninstall(anjay_t *anjay) {
 }
 
-void humidity_object_update(anjay_t *anjay) {
+static inline void humidity_object_update(anjay_t *anjay) {
 }
 
 #endif // SENSORS_IKS01A2

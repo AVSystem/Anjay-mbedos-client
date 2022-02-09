@@ -27,14 +27,14 @@ void magnetometer_object_update(anjay_t *anjay);
 
 #else  // Dummy functions in case sensor not present
 
-int magnetometer_object_install(anjay_t *anjay) {
+static inline int magnetometer_object_install(anjay_t *anjay) {
     return 0;
 }
 
-void magnetometer_object_uninstall(anjay_t *anjay) {
+static inline void magnetometer_object_uninstall(anjay_t *anjay) {
 }
 
-void magnetometer_object_update(anjay_t *anjay) {
+static inline void magnetometer_object_update(anjay_t *anjay) {
 }
 
 #endif // SENSORS_IKS01A2

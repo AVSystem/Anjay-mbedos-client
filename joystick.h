@@ -29,14 +29,14 @@ void joystick_object_update(anjay_t *anjay);
 
 #else // No joystick present - define "dummy" functions that compiler optimizes away
 
-int joystick_object_install(anjay_t *anjay) {
+static inline int joystick_object_install(anjay_t *anjay) {
     return 0;
 }
 
-void joystick_object_uninstall(anjay_t *anjay) {
+static inline void joystick_object_uninstall(anjay_t *anjay) {
 }
 
-void joystick_object_update(anjay_t *anjay) {
+static inline void joystick_object_update(anjay_t *anjay) {
 }
 
 #endif // TARGET_DISCO_L496AG

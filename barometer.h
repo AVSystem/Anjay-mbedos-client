@@ -27,14 +27,14 @@ void barometer_object_update(anjay_t *anjay);
 
 #else // Dummy functions if sensor not present
 
-int barometer_object_install(anjay_t *anjay) {
+static inline int barometer_object_install(anjay_t *anjay) {
     return 0;
 }
 
-void barometer_object_uninstall(anjay_t *anjay) {
+static inline void barometer_object_uninstall(anjay_t *anjay) {
 }
 
-void barometer_object_update(anjay_t *anjay) {
+static inline void barometer_object_update(anjay_t *anjay) {
 }
 
 #endif // SENSORS_IKS01A2
