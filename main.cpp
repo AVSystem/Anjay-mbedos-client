@@ -35,13 +35,12 @@
 #include <mbed_trace.h>
 #include <memory>
 
-#ifdef TARGET_DISCO_L496AG
-#include "accelerometer.h"
+#include "joystick.h"       // gets activated with TARGET_DISCO_L496AG
+
+#include "accelerometer.h"  // Gets activated with SENSORS_IKS01A2=0
 #include "barometer.h"
 #include "humidity.h"
-#include "joystick.h"
 #include "magnetometer.h"
-#endif // TARGET_DISCO_L496AG
 
 #include "default_config.h"
 
@@ -250,12 +249,11 @@ void lwm2m_serve() {
 
         if (setup_security_object() || setup_server_object()
             || device_object_install(anjay)
-#ifdef TARGET_DISCO_L496AG
-            || joystick_object_install(anjay) || humidity_object_install(anjay)
+            || joystick_object_install(anjay) 
+            || humidity_object_install(anjay)
             || barometer_object_install(anjay)
             || magnetometer_object_install(anjay)
             || accelerometer_object_install(anjay)
-#endif // TARGET_DISCO_L496AG
         ) {
             avs_log(lwm2m, ERROR, "cannot register data model objects");
             goto finish;
@@ -278,13 +276,11 @@ void lwm2m_serve() {
         if (anjay) {
             conn_monitoring_object_uninstall(anjay);
             device_object_uninstall(anjay);
-#ifdef TARGET_DISCO_L496AG
             joystick_object_uninstall(anjay);
             humidity_object_uninstall(anjay);
             barometer_object_uninstall(anjay);
             magnetometer_object_uninstall(anjay);
             accelerometer_object_uninstall(anjay);
-#endif // TARGET_DISCO_L496AG
             anjay_delete(anjay);
             anjay = NULL;
         }
@@ -299,13 +295,11 @@ void lwm2m_check_for_notifications(void) {
         {
             ScopedLock<Mutex> lock(anjay_mtx);
             device_object_update(anjay);
-#ifdef TARGET_DISCO_L496AG
             humidity_object_update(anjay);
             barometer_object_update(anjay);
             joystick_object_update(anjay);
             magnetometer_object_update(anjay);
             accelerometer_object_update(anjay);
-#endif // TARGET_DISCO_L496AG
         }
         ThisThread::sleep_for(1000);
     }
@@ -411,8 +405,12 @@ public:
      * @returns 0 on success, negative value otherwise.
      */
     int init(Lwm2mConfig &config) {
+        SocketAddress sa;
+        nsapi_error_t err;
+
         NetworkInterface *netif = NetworkInterface::get_default_instance();
         if (!netif) {
+            printf("ERROR - can't get default network instance!\n");
             return -1;
         }
 
@@ -432,6 +430,15 @@ public:
         if (CellularDevice *device = CellularDevice::get_default_instance()) {
             NETWORK = device->open_network();
             NETWORK->set_access_technology(config.modem_config.rat);
+        }
+
+        // Print IP address and MAC address, quite useful in troubleshooting
+        err = netif->get_ip_address(&sa);
+        if (err != NSAPI_ERROR_OK) {
+            printf("get_ip_address() - failed, status %d\n", err);
+        } else {
+            printf("IP: %s\n", (sa.get_ip_address() ? sa.get_ip_address() : "None"));
+            printf("MAC address: %s\n", (netif->get_mac_address() ? netif->get_mac_address() : "None"));
         }
 
         iface_ = netif;

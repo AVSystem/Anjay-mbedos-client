@@ -19,14 +19,23 @@
 
 #include <anjay/anjay.h>
 
-#ifdef TARGET_DISCO_L496AG
+#if (SENSORS_IKS01A2 == 1)
 
 int barometer_object_install(anjay_t *anjay);
-
 void barometer_object_uninstall(anjay_t *anjay);
-
 void barometer_object_update(anjay_t *anjay);
 
-#endif // TARGET_DISCO_L496AG
+#else // Dummy functions if sensor not present
 
+static inline int barometer_object_install(anjay_t *anjay) {
+    return 0;
+}
+
+static inline void barometer_object_uninstall(anjay_t *anjay) {
+}
+
+static inline void barometer_object_update(anjay_t *anjay) {
+}
+
+#endif // SENSORS_IKS01A2
 #endif // BAROMETER_OBJECT_H

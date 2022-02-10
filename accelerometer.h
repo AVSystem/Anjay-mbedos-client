@@ -19,7 +19,7 @@
 
 #include <anjay/anjay.h>
 
-#ifdef TARGET_DISCO_L496AG
+#if (SENSORS_IKS01A2 == 1)
 
 int accelerometer_object_install(anjay_t *anjay);
 
@@ -27,6 +27,18 @@ void accelerometer_object_uninstall(anjay_t *anjay);
 
 void accelerometer_object_update(anjay_t *anjay);
 
-#endif // TARGET_DISCO_L496AG
+#else // Define dummy functions, compiler optimizes out
+
+static inline int accelerometer_object_install(anjay_t *anjay) {
+    return 0;
+}
+
+static inline void accelerometer_object_uninstall(anjay_t *anjay) {
+}
+
+static inline void accelerometer_object_update(anjay_t *anjay) {
+}
+
+#endif // SENSORS_IKS01A2
 
 #endif // ACCELEROMETER_OBJECT_H
