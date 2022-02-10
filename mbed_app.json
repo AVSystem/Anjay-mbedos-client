@@ -17,7 +17,7 @@
       "platform.stdio-baud-rate": 115200,
       "platform.stdio-convert-newlines": 1,
       "target.OUTPUT_EXT": "bin",
-      "target.app_offset": "0x10000",
+      "target.app_offset": "0x10000"
     },
     "DISCO_L496AG": {
       "stmod_cellular.provide-default": "true",
