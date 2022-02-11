@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2022 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ string SerialConfigMenu::read_string(const char *label) {
         }
     }
     fflush(stdin);
-    print_string_if_echo_enabled("\r\n");
+    print_string_if_echo_enabled("\n");
     return line;
 }
 

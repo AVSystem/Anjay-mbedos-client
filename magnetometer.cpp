@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2022 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,6 +78,9 @@ constexpr anjay_rid_t RID_Z_VALUE = 5704;
 
 constexpr anjay_oid_t MAGNETOMETER_OID = 3314;
 
+// Convert from mG to T
+constexpr double VALUE_SCALE = 1e-7;
+
 struct MagnetometerObject {
     const anjay_dm_object_def_t *const def;
 
@@ -129,19 +132,19 @@ int resource_read(anjay_t *,
     switch (rid) {
     case RID_SENSOR_UNITS:
         assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_string(ctx, "mG");
+        return anjay_ret_string(ctx, "T");
 
     case RID_X_VALUE:
         assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_float(ctx, obj->x_value);
+        return anjay_ret_float(ctx, obj->x_value * VALUE_SCALE);
 
     case RID_Y_VALUE:
         assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_float(ctx, obj->y_value);
+        return anjay_ret_float(ctx, obj->y_value * VALUE_SCALE);
 
     case RID_Z_VALUE:
         assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_float(ctx, obj->z_value);
+        return anjay_ret_float(ctx, obj->z_value * VALUE_SCALE);
 
     default:
         return ANJAY_ERR_METHOD_NOT_ALLOWED;
@@ -174,7 +177,7 @@ const anjay_dm_object_def_t **magnetometer_object_create(void) {
     uint8_t id = 0;
     int32_t sensor_value[3];
     if (sensor->read_id(&id) || id != SENSOR_ID || sensor->enable()
-            || sensor->get_m_axes(sensor_value)) {
+        || sensor->get_m_axes(sensor_value)) {
         MAGNETOMETER_OBJ_LOG(WARNING, "Failed to initialize magnetometer");
         return NULL;
     }

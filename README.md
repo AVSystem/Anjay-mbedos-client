@@ -22,7 +22,6 @@ The following LwM2M Objects are supported in this application:
 
 - Security (/0),
 - Server (/1),
-- Access Control (/2),
 - Device (/3),
 - Connectivity Monitoring (/4).
 

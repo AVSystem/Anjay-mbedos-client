@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2022 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,42 +50,42 @@
  * type: float, range: N/A, unit: N/A
  * The minimum value measured by the sensor since power ON or reset
  */
-#    define RID_MIN_MEASURED_VALUE 5601
+#define RID_MIN_MEASURED_VALUE 5601
 
 /**
  * Max Measured Value: R, Single, Optional
  * type: float, range: N/A, unit: N/A
  * The maximum value measured by the sensor since power ON or reset
  */
-#    define RID_MAX_MEASURED_VALUE 5602
+#define RID_MAX_MEASURED_VALUE 5602
 
 /**
  * Min Range Value: R, Single, Optional
  * type: float, range: N/A, unit: N/A
  * The minimum value that can be measured by the sensor
  */
-#    define RID_MIN_RANGE_VALUE 5603
+#define RID_MIN_RANGE_VALUE 5603
 
 /**
  * Max Range Value: R, Single, Optional
  * type: float, range: N/A, unit: N/A
  * The maximum value that can be measured by the sensor
  */
-#    define RID_MAX_RANGE_VALUE 5604
+#define RID_MAX_RANGE_VALUE 5604
 
 /**
  * Reset Min and Max Measured Values: E, Single, Optional
  * type: N/A, range: N/A, unit: N/A
  * Reset the Min and Max Measured Values to Current Value
  */
-#    define RID_RESET_MIN_AND_MAX_MEASURED_VALUES 5605
+#define RID_RESET_MIN_AND_MAX_MEASURED_VALUES 5605
 
 /**
  * Sensor Value: R, Single, Mandatory
  * type: float, range: N/A, unit: N/A
  * Last or Current Measured Value from the Sensor
  */
-#    define RID_SENSOR_VALUE 5700
+#define RID_SENSOR_VALUE 5700
 
 /**
  * Sensor Units: R, Single, Optional
@@ -93,10 +93,13 @@
  * If present, the type of sensor defined as the UCUM Unit Definition
  * e.g. “Cel” for Temperature in Celcius.
  */
-#    define RID_SENSOR_UNITS 5701
+#define RID_SENSOR_UNITS 5701
 
-#    define MIN_RANGE_VALUE 260.0  // hPa
-#    define MAX_RANGE_VALUE 1260.0 // hPa
+// Convert from mbar to Pa
+constexpr double VALUE_SCALE = 100.0;
+
+#define MIN_RANGE_VALUE 26000.0  // Pa
+#define MAX_RANGE_VALUE 126000.0 // Pa
 
 typedef struct barometer_struct {
     const anjay_dm_object_def_t *def;
@@ -172,11 +175,11 @@ static int resource_read(anjay_t *anjay,
     switch (rid) {
     case RID_MIN_MEASURED_VALUE:
         assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_float(ctx, obj->min_value);
+        return anjay_ret_float(ctx, obj->min_value * VALUE_SCALE);
 
     case RID_MAX_MEASURED_VALUE:
         assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_float(ctx, obj->max_value);
+        return anjay_ret_float(ctx, obj->max_value * VALUE_SCALE);
 
     case RID_MIN_RANGE_VALUE:
         assert(riid == ANJAY_ID_INVALID);
@@ -188,13 +191,11 @@ static int resource_read(anjay_t *anjay,
 
     case RID_SENSOR_VALUE:
         assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_float(ctx, obj->curr_value);
+        return anjay_ret_float(ctx, obj->curr_value * VALUE_SCALE);
 
     case RID_SENSOR_UNITS:
         assert(riid == ANJAY_ID_INVALID);
-        // Documentation for get_pressure says about mbars, but 1 mbar is equal
-        // to 1 hPa.
-        return anjay_ret_string(ctx, "hPa");
+        return anjay_ret_string(ctx, "Pa");
 
     default:
         return ANJAY_ERR_METHOD_NOT_ALLOWED;

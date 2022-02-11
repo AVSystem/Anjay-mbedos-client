@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2022 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,6 @@
 
 #include <mbed.h>
 
-
 #include <XNucleoIKS01A2.h>
 
 #include "humidity.h"
@@ -49,57 +48,59 @@
 
 #define SENSOR_ID 0xBC
 
+#define HUMIDITY_OID 3304
+
 /**
  * Min Measured Value: R, Single, Optional
  * type: float, range: N/A, unit: N/A
  * The minimum value measured by the sensor since power ON or reset
  */
-#    define RID_MIN_MEASURED_VALUE 5601
+#define RID_MIN_MEASURED_VALUE 5601
 
 /**
  * Max Measured Value: R, Single, Optional
  * type: float, range: N/A, unit: N/A
  * The maximum value measured by the sensor since power ON or reset
  */
-#    define RID_MAX_MEASURED_VALUE 5602
+#define RID_MAX_MEASURED_VALUE 5602
 
 /**
  * Min Range Value: R, Single, Optional
  * type: float, range: N/A, unit: N/A
  * The minimum value that can be measured by the sensor
  */
-#    define RID_MIN_RANGE_VALUE 5603
+#define RID_MIN_RANGE_VALUE 5603
 
 /**
  * Max Range Value: R, Single, Optional
  * type: float, range: N/A, unit: N/A
  * The maximum value that can be measured by the sensor
  */
-#    define RID_MAX_RANGE_VALUE 5604
+#define RID_MAX_RANGE_VALUE 5604
 
 /**
  * Reset Min and Max Measured Values: E, Single, Optional
  * type: N/A, range: N/A, unit: N/A
  * Reset the Min and Max Measured Values to Current Value
  */
-#    define RID_RESET_MIN_AND_MAX_MEASURED_VALUES 5605
+#define RID_RESET_MIN_AND_MAX_MEASURED_VALUES 5605
 
 /**
  * Sensor Value: R, Single, Mandatory
  * type: float, range: N/A, unit: N/A
  * Last or Current Measured Value from the Sensor
  */
-#    define RID_SENSOR_VALUE 5700
+#define RID_SENSOR_VALUE 5700
 
 /**
  * Sensor Units: R, Single, Optional
  * type: string, range: N/A, unit: N/A
  * Measurement Units Definition e.g. “Cel” for Temperature in Celsius.
  */
-#    define RID_SENSOR_UNITS 5701
+#define RID_SENSOR_UNITS 5701
 
-#    define MIN_RANGE_VALUE 0.0   // % rH
-#    define MAX_RANGE_VALUE 100.0 // % rH
+#define MIN_RANGE_VALUE 0.0   // % rH
+#define MAX_RANGE_VALUE 100.0 // % rH
 
 typedef struct humidity_struct {
     const anjay_dm_object_def_t *def;
@@ -196,7 +197,7 @@ static int resource_read(anjay_t *anjay,
 
     case RID_SENSOR_UNITS:
         assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_string(ctx, "% rH");
+        return anjay_ret_string(ctx, "%RH");
 
     default:
         return ANJAY_ERR_METHOD_NOT_ALLOWED;
@@ -252,7 +253,7 @@ const anjay_dm_object_def_t **humidity_object_create(void) {
     uint8_t id = 0;
     float sensor_value;
     if (sensor->read_id(&id) || id != SENSOR_ID || sensor->enable()
-            || sensor->get_humidity(&sensor_value)) {
+        || sensor->get_humidity(&sensor_value)) {
         HUMIDITY_OBJ_LOG(WARNING, "Failed to initialize humidity sensor");
         return NULL;
     }

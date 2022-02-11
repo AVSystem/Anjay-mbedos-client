@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2022 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,17 +27,16 @@ void joystick_object_uninstall(anjay_t *anjay);
 
 void joystick_object_update(anjay_t *anjay);
 
-#else // No joystick present - define "dummy" functions that compiler optimizes away
+#else // No joystick present - define "dummy" functions that compiler optimizes
+      // away
 
 static inline int joystick_object_install(anjay_t *anjay) {
     return 0;
 }
 
-static inline void joystick_object_uninstall(anjay_t *anjay) {
-}
+static inline void joystick_object_uninstall(anjay_t *anjay) {}
 
-static inline void joystick_object_update(anjay_t *anjay) {
-}
+static inline void joystick_object_update(anjay_t *anjay) {}
 
 #endif // TARGET_DISCO_L496AG
 

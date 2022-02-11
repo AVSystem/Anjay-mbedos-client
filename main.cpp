@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2022 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,9 +35,9 @@
 #include <mbed_trace.h>
 #include <memory>
 
-#include "joystick.h"       // gets activated with TARGET_DISCO_L496AG
+#include "joystick.h" // gets activated with TARGET_DISCO_L496AG
 
-#include "accelerometer.h"  // Gets activated with SENSORS_IKS01A2=0
+#include "accelerometer.h" // Gets activated with SENSORS_IKS01A2 == 1
 #include "barometer.h"
 #include "humidity.h"
 #include "magnetometer.h"
@@ -47,50 +47,6 @@
 
 namespace {
 
-anjay_t *anjay;
-
-void serve(
-        AVS_LIST(const anjay_socket_entry_t) socket_entries,
-        uint32_t timeout_ms) {
-    auto all_sockets =
-            avs::ListView<const anjay_socket_entry_t>(socket_entries);
-    avs::List<avs_net_socket_t *> sockets_to_poll;
-
-    for (const auto &it : all_sockets) {
-        if (sockets_to_poll.push_back(it.socket) == sockets_to_poll.end()) {
-            avs_log(lwm2m, ERROR, "out of memory");
-            return;
-        }
-    }
-
-    avs::List<avs_net_socket_t *> ready;
-    AvsSocketGlobal::poll(ready, sockets_to_poll, timeout_ms);
-
-    // anjay_serve() errors ignored: not much to do in such case
-    for (auto it : ready) {
-        anjay_serve(anjay, it);
-    }
-}
-
-Mutex anjay_mtx;
-
-void serve_forever(
-) {
-    do {
-        {
-            ScopedLock<Mutex> lock(anjay_mtx);
-            AVS_LIST(const anjay_socket_entry_t)
-            socket_entries = anjay_get_socket_entries(anjay);
-
-            int timeout_ms = anjay_sched_calculate_wait_time_ms(anjay, 10);
-            serve(
-                    socket_entries, timeout_ms);
-            anjay_sched_run(anjay);
-        }
-        // Allow other tasks to be done
-        ThisThread::sleep_for(10);
-    } while (!anjay_all_connections_failed(anjay));
-}
 
 // We hold these as globals because we cannot pass them two via lambda capture
 // to lwm2m_serve() (see MBED_ENABLE_IF_CALLBACK_COMPATIBLE in
@@ -98,7 +54,7 @@ void serve_forever(
 CellularNetwork *NETWORK;
 Lwm2mConfig SERIAL_MENU_CONFIG;
 
-int setup_security_object(void) {
+int setup_security_object(anjay_t *anjay) {
     int result = anjay_security_object_install(anjay);
     if (result) {
         avs_log(lwm2m, ERROR, "cannot initialize security object");
@@ -119,7 +75,8 @@ int setup_security_object(void) {
     }
 
     if (SERIAL_MENU_CONFIG.rg_server_config) {
-        anjay_iid_t rg_instance_iid = 1;
+        anjay_iid_t rg_instance_iid =
+                (SERIAL_MENU_CONFIG.bs_server_config ? 1 : 0);
         const anjay_security_instance_t rg_instance =
                 SERIAL_MENU_CONFIG.rg_server_config.as_security_instance(1);
         if ((result = anjay_security_object_add_instance(anjay, &rg_instance,
@@ -133,7 +90,7 @@ int setup_security_object(void) {
     return 0;
 }
 
-int setup_server_object(void) {
+int setup_server_object(anjay_t *anjay) {
     int result = anjay_server_object_install(anjay);
     if (result) {
         avs_log(lwm2m, ERROR, "cannot install LwM2M Server object");
@@ -141,11 +98,11 @@ int setup_server_object(void) {
     }
 
     if (SERIAL_MENU_CONFIG.rg_server_config) {
-        anjay_iid_t server_instance_iid = 1;
+        anjay_iid_t server_instance_iid = 0;
         anjay_server_instance_t server_instance;
         memset(&server_instance, 0, sizeof(server_instance));
         server_instance.ssid = 1;
-        server_instance.lifetime = 86400;
+        server_instance.lifetime = 120;
         server_instance.default_min_period = -1;
         server_instance.default_max_period = -1;
         server_instance.disable_timeout = -1;
@@ -166,7 +123,7 @@ void log_handler(avs_log_level_t level,
                  const char *message) {
     (void) level;
     (void) module;
-    printf("%s\r\n", message);
+    printf("%s\n", message);
 }
 
 const char *try_get_modem_imei() {
@@ -222,6 +179,25 @@ const char *get_endpoint_name() {
     return DEFAULT_ENDPOINT_NAME;
 }
 
+void lwm2m_check_for_notifications(avs_sched_t *sched, const void *anjay_ptr) {
+    anjay_t *anjay = *(anjay_t *const *) anjay_ptr;
+
+    device_object_update(anjay);
+    humidity_object_update(anjay);
+    barometer_object_update(anjay);
+    joystick_object_update(anjay);
+    magnetometer_object_update(anjay);
+    accelerometer_object_update(anjay);
+
+    if (anjay_all_connections_failed(anjay)) {
+        anjay_event_loop_interrupt(anjay);
+    } else {
+        AVS_SCHED_DELAYED(sched, nullptr,
+                          avs_time_duration_from_scalar(1, AVS_TIME_S),
+                          lwm2m_check_for_notifications, &anjay, sizeof(anjay));
+    }
+}
+
 void lwm2m_serve() {
     avs_log(lwm2m, INFO, "lwm2m_task starting up");
 
@@ -231,11 +207,10 @@ void lwm2m_serve() {
         CONFIG.endpoint_name = get_endpoint_name();
         CONFIG.in_buffer_size = 1024;
         CONFIG.out_buffer_size = 1024;
-        CONFIG.udp_listen_port = 5683;
         CONFIG.msg_cache_size = 2048;
 
         avs_log(lwm2m, INFO, "endpoint name: %s", CONFIG.endpoint_name);
-        anjay = anjay_new(&CONFIG);
+        anjay_t *anjay = anjay_new(&CONFIG);
 
         if (!anjay) {
             avs_log(lwm2m, ERROR, "could not create anjay object");
@@ -247,14 +222,11 @@ void lwm2m_serve() {
             goto finish;
         }
 
-        if (setup_security_object() || setup_server_object()
-            || device_object_install(anjay)
-            || joystick_object_install(anjay) 
-            || humidity_object_install(anjay)
-            || barometer_object_install(anjay)
+        if (setup_security_object(anjay) || setup_server_object(anjay)
+            || device_object_install(anjay) || joystick_object_install(anjay)
+            || humidity_object_install(anjay) || barometer_object_install(anjay)
             || magnetometer_object_install(anjay)
-            || accelerometer_object_install(anjay)
-        ) {
+            || accelerometer_object_install(anjay)) {
             avs_log(lwm2m, ERROR, "cannot register data model objects");
             goto finish;
         }
@@ -268,8 +240,10 @@ void lwm2m_serve() {
             }
         }
 
-        serve_forever(
-        );
+        lwm2m_check_for_notifications(anjay_get_scheduler(anjay), &anjay);
+
+        anjay_event_loop_run(anjay,
+                             avs_time_duration_from_scalar(100, AVS_TIME_MS));
         avs_log(lwm2m, ERROR, "lwm2m_task finished unexpectedly");
 
     finish:
@@ -282,26 +256,10 @@ void lwm2m_serve() {
             magnetometer_object_uninstall(anjay);
             accelerometer_object_uninstall(anjay);
             anjay_delete(anjay);
-            anjay = NULL;
         }
 
         avs_log(lwm2m, ERROR, "resetting to factory defaults after 30s");
         ThisThread::sleep_for(30000);
-    }
-}
-
-void lwm2m_check_for_notifications(void) {
-    while (true) {
-        {
-            ScopedLock<Mutex> lock(anjay_mtx);
-            device_object_update(anjay);
-            humidity_object_update(anjay);
-            barometer_object_update(anjay);
-            joystick_object_update(anjay);
-            magnetometer_object_update(anjay);
-            accelerometer_object_update(anjay);
-        }
-        ThisThread::sleep_for(1000);
     }
 }
 
@@ -373,7 +331,6 @@ void print_stats(void) {
 }
 
 Thread thread_lwm2m(osPriorityNormal, 16384, nullptr, "lwm2m");
-Thread thread_lwm2m_notify(osPriorityNormal, 4096, nullptr, "lwm2m_notify");
 
 void set_modem_configuration(CellularInterface *dest, const ModemConfig &src) {
     if (!src.apn.empty()) {
@@ -400,7 +357,8 @@ public:
      * supposed to:
      *      - initialize underlying network devices & connect to the network,
      *      - setup iface_ field to a valid NetworkInterface instance,
-     *      - (optional) setup NETWORK global variable if the network is cellular.
+     *      - (optional) setup NETWORK global variable if the network is
+     *        cellular.
      *
      * @returns 0 on success, negative value otherwise.
      */
@@ -418,13 +376,13 @@ public:
             set_modem_configuration(cellular, config.modem_config);
         }
 
-        printf("Configuring network interface\r\n");
+        printf("Configuring network interface\n");
         for (int retry = 0;
              netif->get_connection_status() != NSAPI_STATUS_GLOBAL_UP;
              ++retry) {
-            printf("connect, retry = %d\r\n", retry);
+            printf("connect, retry = %d\n", retry);
             nsapi_error_t err = netif->connect();
-            printf("connect result = %d\r\n", err);
+            printf("connect result = %d\n", err);
         }
 
         if (CellularDevice *device = CellularDevice::get_default_instance()) {
@@ -437,8 +395,11 @@ public:
         if (err != NSAPI_ERROR_OK) {
             printf("get_ip_address() - failed, status %d\n", err);
         } else {
-            printf("IP: %s\n", (sa.get_ip_address() ? sa.get_ip_address() : "None"));
-            printf("MAC address: %s\n", (netif->get_mac_address() ? netif->get_mac_address() : "None"));
+            printf("IP: %s\n",
+                   (sa.get_ip_address() ? sa.get_ip_address() : "None"));
+            printf("MAC address: %s\n",
+                   (netif->get_mac_address() ? netif->get_mac_address()
+                                             : "None"));
         }
 
         iface_ = netif;
@@ -507,10 +468,10 @@ int main() {
     }
 
     {
-        AvsSocketGlobal avs(ns.get_network_interface(), 32, 1536, AVS_NET_AF_INET4);
+        AvsSocketGlobal avs(ns.get_network_interface(), 32, 1536,
+                            AVS_NET_AF_INET4);
 
         thread_lwm2m.start([]() { lwm2m_serve(); });
-        thread_lwm2m_notify.start([]() { lwm2m_check_for_notifications(); });
         DigitalOut heartbeat{ LED1 };
         int heartbeat_value = 0;
         for (;;) {

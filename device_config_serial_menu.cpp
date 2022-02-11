@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2022 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -288,6 +288,12 @@ void show_menu_and_maybe_update_config(Lwm2mConfig &config) {
                                                    + cached_config.modem_config
                                                              .apn;
                       }),
+              SerialConfigMenuEntry("Load default configuration",
+                                    [&]() {
+                                        cached_config = Lwm2mConfig();
+                                        return SerialConfigMenuEntry::
+                                                MenuLoopAction::CONTINUE;
+                                    }),
               SerialConfigMenuEntry(
                       "Exit & save changes",
                       [&]() {
@@ -480,9 +486,11 @@ int Lwm2mConfigPersistence::persistence(Direction direction,
                                         Lwm2mConfig &config) {
     using namespace config_persistence_keys;
     int result;
-    (void) ((result =
-                     key_persistence(direction, utils_->store, bs_server_status,
-                                     config.bs_server_config.status))
+    (void) ((direction == Lwm2mConfigPersistence::Direction::STORE
+             && (result = utils_->store.reset()))
+            || (result = key_persistence(direction, utils_->store,
+                                         bs_server_status,
+                                         config.bs_server_config.status))
             || (result = key_persistence(direction, utils_->store,
                                          bs_server_security_mode,
                                          config.bs_server_config.security_mode))

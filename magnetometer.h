@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2022 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,17 +25,15 @@ int magnetometer_object_install(anjay_t *anjay);
 void magnetometer_object_uninstall(anjay_t *anjay);
 void magnetometer_object_update(anjay_t *anjay);
 
-#else  // Dummy functions in case sensor not present
+#else // Dummy functions in case sensor not present
 
 static inline int magnetometer_object_install(anjay_t *anjay) {
     return 0;
 }
 
-static inline void magnetometer_object_uninstall(anjay_t *anjay) {
-}
+static inline void magnetometer_object_uninstall(anjay_t *anjay) {}
 
-static inline void magnetometer_object_update(anjay_t *anjay) {
-}
+static inline void magnetometer_object_update(anjay_t *anjay) {}
 
 #endif // SENSORS_IKS01A2
 #endif // MAGNETOMETER_OBJECT_H

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2022 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,11 +33,9 @@ static inline int accelerometer_object_install(anjay_t *anjay) {
     return 0;
 }
 
-static inline void accelerometer_object_uninstall(anjay_t *anjay) {
-}
+static inline void accelerometer_object_uninstall(anjay_t *anjay) {}
 
-static inline void accelerometer_object_update(anjay_t *anjay) {
-}
+static inline void accelerometer_object_update(anjay_t *anjay) {}
 
 #endif // SENSORS_IKS01A2
 

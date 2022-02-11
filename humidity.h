@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2022 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,6 @@
 
 #if (SENSORS_IKS01A2 == 1)
 
-#define HUMIDITY_OID 3304
-#define HUMIDITY_RID_SENSOR_VALUE 5700
-
 int humidity_object_install(anjay_t *anjay);
 void humidity_object_uninstall(anjay_t *anjay);
 void humidity_object_update(anjay_t *anjay);
@@ -34,11 +31,9 @@ static inline int humidity_object_install(anjay_t *anjay) {
     return 0;
 }
 
-static inline void humidity_object_uninstall(anjay_t *anjay) {
-}
+static inline void humidity_object_uninstall(anjay_t *anjay) {}
 
-static inline void humidity_object_update(anjay_t *anjay) {
-}
+static inline void humidity_object_update(anjay_t *anjay) {}
 
 #endif // SENSORS_IKS01A2
 #endif // HUMIDITY_OBJECT_H

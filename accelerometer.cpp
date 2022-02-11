@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2022 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,6 @@
 #include <avsystem/commons/avs_defs.h>
 #include <avsystem/commons/avs_list_cxx.hpp>
 #include <avsystem/commons/avs_log.h>
-
 
 #include <XNucleoIKS01A2.h>
 
@@ -76,6 +75,9 @@ constexpr anjay_rid_t RID_Y_VALUE = 5703;
 constexpr anjay_rid_t RID_Z_VALUE = 5704;
 
 constexpr anjay_oid_t ACCELEROMETER_OID = 3313;
+
+// Convert from cm/s^2 to m/s^2
+constexpr double VALUE_SCALE = 0.01;
 
 struct AccelerometerObject {
     const anjay_dm_object_def_t *const def;
@@ -128,19 +130,19 @@ int resource_read(anjay_t *,
     switch (rid) {
     case RID_SENSOR_UNITS:
         assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_string(ctx, "mg");
+        return anjay_ret_string(ctx, "m/s2");
 
     case RID_X_VALUE:
         assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_float(ctx, obj->x_value);
+        return anjay_ret_double(ctx, obj->x_value * VALUE_SCALE);
 
     case RID_Y_VALUE:
         assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_float(ctx, obj->y_value);
+        return anjay_ret_double(ctx, obj->y_value * VALUE_SCALE);
 
     case RID_Z_VALUE:
         assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_float(ctx, obj->z_value);
+        return anjay_ret_double(ctx, obj->z_value * VALUE_SCALE);
 
     default:
         return ANJAY_ERR_METHOD_NOT_ALLOWED;
@@ -173,7 +175,7 @@ const anjay_dm_object_def_t **accelerometer_object_create(void) {
     uint8_t id = 0;
     int32_t sensor_value[3];
     if (sensor->read_id(&id) || id != SENSOR_ID || sensor->enable()
-            || sensor->get_x_axes(sensor_value)) {
+        || sensor->get_x_axes(sensor_value)) {
         ACCELEROMETER_OBJ_LOG(WARNING, "Failed to initialize accelerometer");
         return NULL;
     }
