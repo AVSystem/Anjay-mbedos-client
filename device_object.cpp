@@ -214,7 +214,7 @@ static int resource_read(anjay_t *anjay,
 
     case RID_FIRMWARE_VERSION:
         assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_string(ctx, "22.02");
+        return anjay_ret_string(ctx, "22.03");
 
     case RID_ERROR_CODE:
         assert(riid == 0);
