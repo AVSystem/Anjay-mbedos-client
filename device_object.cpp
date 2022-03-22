@@ -181,14 +181,7 @@ static const char *device_manufacturer(void) {
 }
 
 static const char *model_number(void) {
-#ifdef TARGET_DISCO_L496AG
-    return "STM32L496G-DISCO";
-#elif TARGET_NRF52840_DK
-    return "nRF52840 DK";
-#else
-#    warning "Add model number"
-    return "Unknown";
-#endif
+    return MBED_STRINGIFY(TARGET_NAME);
 }
 
 static int resource_read(anjay_t *anjay,
