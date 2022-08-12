@@ -1,0 +1,41 @@
+{
+    "name": "anjay-mbed-fota",
+    "target_overrides": {
+        "*": {
+            "target.macros_add": [
+                "FOTA_KEY_ENCRYPTION_EXTERNAL_STORAGE",
+                "FOTA_NUM_COMPONENTS=1",
+                "FOTA_USE_EXTERNAL_CERT",
+                "FOTA_USE_EXTERNAL_IDS",
+                "MBED_CLOUD_CLIENT_FOTA_EXTERNAL_DOWNLOADER",
+                "MBED_CLOUD_CLIENT_FOTA_MULTICAST_SUPPORT=FOTA_MULTICAST_NODE_MODE",
+                "MBED_CLOUD_CLIENT_FOTA_RESUME_SUPPORT=FOTA_RESUME_UNSUPPORTED",
+                "PAL_USE_SSL_SESSION_RESUME=0",
+                "SN_COAP_MAX_BLOCKWISE_PAYLOAD_SIZE=1024"
+            ]
+        }
+    },
+    "config": {
+        "enable": {
+            "help": "Enable/Disable FOTA functionality. Set true to enable.",
+            "macro_name": "MBED_CLOUD_CLIENT_FOTA_ENABLE",
+            "accepted_values" : [null, true],
+            "value": null
+        },
+        "update-cert": {
+            "help": "Certificate used to verify the firmware signature",
+            "default": null,
+            "value": null
+        },
+        "vendor-id": {
+            "help": "Vendor ID used to verify the firmware packages",
+            "default": null,
+            "value": null
+        },
+        "class-id": {
+            "help": "Class ID used to verify the firmware packages",
+            "default": null,
+            "value": null
+        }
+    }
+}

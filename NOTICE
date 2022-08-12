@@ -8,8 +8,8 @@ This product bundles Anjay-mbedos
 Apache License, version 2.0. See Anjay-mbedos/NOTICE file for details.
 
 This product bundles Anjay
-(https://github.com/AVSystem/Anjay), also licensed under the terms of the
-Apache License, version 2.0. See Anjay/NOTICE file for details.
+(https://github.com/AVSystem/Anjay), licensed under the terms of the
+AVSystem-5-clause License. See Anjay/LICENSE file for details.
 
 This product bundles the AVSystem Commons Library
 (https://github.com/AVSystem/avs_commons), also licensed under the terms of the

@@ -16,13 +16,18 @@
 
 #include "device_config_serial_menu.h"
 #include "default_config.h"
+#include "persistence.h"
+#include <avsystem/commons/avs_log.h>
 #include <avsystem/commons/avs_url.h>
 #include <cctype>
 #include <mbed.h>
 #include <sstream>
 
+#include <kvstore_global_api/kvstore_global_api.h>
+
 using namespace std;
 
+#if !MBED_CONF_APP_WITH_EST
 namespace {
 
 int parse_security_mode(const string &server_uri,
@@ -130,6 +135,7 @@ Lwm2mServerConfig::as_security_instance(anjay_ssid_t ssid) const {
     instance.private_cert_or_psk_key_size = psk_key.size();
     return instance;
 }
+#endif // !MBED_CONF_APP_WITH_EST
 
 bool should_show_menu(avs_time_duration_t max_wait_time) {
     const avs_time_real_t deadline =
@@ -149,6 +155,7 @@ bool should_show_menu(avs_time_duration_t max_wait_time) {
 void show_menu_and_maybe_update_config(Lwm2mConfig &config) {
     Lwm2mConfig cached_config = config;
 
+#if !MBED_CONF_APP_WITH_EST
     SerialConfigMenu bootstrap_server_config_menu =
             create_server_config_menu("BOOTSTRAP SERVER CONFIGURATION MENU",
                                       cached_config.bs_server_config);
@@ -156,6 +163,34 @@ void show_menu_and_maybe_update_config(Lwm2mConfig &config) {
     SerialConfigMenu regular_server_config_menu =
             create_server_config_menu("REGULAR SERVER CONFIGURATION MENU",
                                       cached_config.rg_server_config);
+#endif // !MBED_CONF_APP_WITH_EST
+
+    SerialConfigMenu persistence_config_menu(
+            "Persistence configuration",
+            { SerialConfigMenuEntry(
+                      "Enable / Disable",
+                      [&]() {
+                          cached_config.persistence_enabled =
+                                  !cached_config.persistence_enabled;
+                          return SerialConfigMenuEntry::MenuLoopAction::
+                                  CONTINUE;
+                      },
+                      [&]() {
+                          return cached_config.persistence_enabled ? "ENABLED"
+                                                                   : "DISABLED";
+                      }),
+              SerialConfigMenuEntry(
+                      "Purge persistence (applies immediately)",
+                      [&]() {
+                          printf(persistence_purge()
+                                         ? "Could not purge persistence"
+                                         : "Successfully purged persistence");
+                          return SerialConfigMenuEntry::MenuLoopAction::
+                                  CONTINUE;
+                      }),
+              SerialConfigMenuEntry("Back", [&]() {
+                  return SerialConfigMenuEntry::MenuLoopAction::EXIT;
+              }) });
 
     EnumSelectMenu<avs_log_level_t> log_level_select_menu(
             "LwM2M client log level", cached_config.log_level,
@@ -165,7 +200,14 @@ void show_menu_and_maybe_update_config(Lwm2mConfig &config) {
               { AVS_LOG_WARNING, "warning" },
               { AVS_LOG_ERROR, "error" },
               { AVS_LOG_QUIET, "quiet" } });
+#ifdef ANJAY_WITH_LWM2M11
+    EnumSelectMenu<anjay_lwm2m_version_t> lwm2m_version_select_menu(
+            "LwM2M version", cached_config.maximum_version,
+            { { ANJAY_LWM2M_VERSION_1_0, "1.0" },
+              { ANJAY_LWM2M_VERSION_1_1, "1.1" } });
+#endif // ANJAY_WITH_LWM2M11
 
+#if MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == CELLULAR
     using RAT = CellularNetwork::RadioAccessTechnology;
     EnumSelectMenu<RAT> rat_select_menu(
             "Radio Access Technology", cached_config.modem_config.rat,
@@ -232,77 +274,109 @@ void show_menu_and_maybe_update_config(Lwm2mConfig &config) {
               SerialConfigMenuEntry("Back", [&]() {
                   return SerialConfigMenuEntry::MenuLoopAction::EXIT;
               }) });
+#endif // MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == CELLULAR
 
-    SerialConfigMenu main_menu(
-            "DEVICE CONFIGURATION MENU",
-            { SerialConfigMenuEntry(
-                      "Bootstrap Server configuration",
-                      [&]() {
-                          bootstrap_server_config_menu
-                                  .keep_showing_until_exit_command();
-                          return SerialConfigMenuEntry::MenuLoopAction::
-                                  CONTINUE;
-                      },
-                      [&]() {
-                          return cached_config.bs_server_config
-                                         ? cached_config.bs_server_config
-                                                   .server_uri
-                                         : "DISABLED";
-                      }),
-              SerialConfigMenuEntry(
-                      "Regular Server configuration",
-                      [&]() {
-                          regular_server_config_menu
-                                  .keep_showing_until_exit_command();
-                          return SerialConfigMenuEntry::MenuLoopAction::
-                                  CONTINUE;
-                      },
-                      [&]() {
-                          return cached_config.rg_server_config
-                                         ? cached_config.rg_server_config
-                                                   .server_uri
-                                         : "DISABLED";
-                      }),
-              SerialConfigMenuEntry(
-                      "LwM2M client log level",
-                      [&]() {
-                          cached_config.log_level =
-                                  log_level_select_menu.show_and_get_value();
-                          return SerialConfigMenuEntry::MenuLoopAction::
-                                  CONTINUE;
-                      },
-                      [&]() {
-                          return log_level_select_menu.get_value_as_string();
-                      }),
-              SerialConfigMenuEntry(
-                      "Modem configuration",
-                      [&]() {
-                          modem_config_menu.keep_showing_until_exit_command();
-                          return SerialConfigMenuEntry::MenuLoopAction::
-                                  CONTINUE;
-                      },
-                      [&]() {
-                          return cached_config.modem_config.apn.empty()
-                                         ? "APN not specified"
-                                         : "APN = "
-                                                   + cached_config.modem_config
-                                                             .apn;
-                      }),
-              SerialConfigMenuEntry("Load default configuration",
-                                    [&]() {
-                                        cached_config = Lwm2mConfig();
-                                        return SerialConfigMenuEntry::
-                                                MenuLoopAction::CONTINUE;
-                                    }),
-              SerialConfigMenuEntry(
-                      "Exit & save changes",
-                      [&]() {
-                          config = cached_config;
-                          return SerialConfigMenuEntry::MenuLoopAction::EXIT;
-                      }),
-              SerialConfigMenuEntry("Exit & discard changes", []() {
-                  return SerialConfigMenuEntry::MenuLoopAction::EXIT;
-              }) });
+    SerialConfigMenu main_menu("DEVICE CONFIGURATION MENU", {
+#if !MBED_CONF_APP_WITH_EST
+        SerialConfigMenuEntry(
+                "Bootstrap Server configuration",
+                [&]() {
+                    bootstrap_server_config_menu
+                            .keep_showing_until_exit_command();
+                    return SerialConfigMenuEntry::MenuLoopAction::CONTINUE;
+                },
+                [&]() {
+                    return cached_config.bs_server_config
+                                   ? cached_config.bs_server_config.server_uri
+                                   : "DISABLED";
+                }),
+                SerialConfigMenuEntry(
+                        "Regular Server configuration",
+                        [&]() {
+                            regular_server_config_menu
+                                    .keep_showing_until_exit_command();
+                            return SerialConfigMenuEntry::MenuLoopAction::
+                                    CONTINUE;
+                        },
+                        [&]() {
+                            return cached_config.rg_server_config
+                                           ? cached_config.rg_server_config
+                                                     .server_uri
+                                           : "DISABLED";
+                        }),
+#endif // !MBED_CONF_APP_WITH_EST
+                SerialConfigMenuEntry(
+                        "Persistence configuration",
+                        [&]() {
+                            persistence_config_menu
+                                    .keep_showing_until_exit_command();
+                            return SerialConfigMenuEntry::MenuLoopAction::
+                                    CONTINUE;
+                        },
+                        [&]() {
+                            return cached_config.persistence_enabled
+                                           ? "ENABLED"
+                                           : "DISABLED";
+                        }),
+                SerialConfigMenuEntry(
+                        "LwM2M client log level",
+                        [&]() {
+                            cached_config.log_level =
+                                    log_level_select_menu.show_and_get_value();
+                            return SerialConfigMenuEntry::MenuLoopAction::
+                                    CONTINUE;
+                        },
+                        [&]() {
+                            return log_level_select_menu.get_value_as_string();
+                        }),
+#ifdef ANJAY_WITH_LWM2M11
+                SerialConfigMenuEntry(
+                        "LwM2M Version",
+                        [&]() {
+                            cached_config.maximum_version =
+                                    lwm2m_version_select_menu
+                                            .show_and_get_value();
+                            return SerialConfigMenuEntry::MenuLoopAction::
+                                    CONTINUE;
+                        },
+                        [&]() {
+                            return lwm2m_version_select_menu
+                                    .get_value_as_string();
+                        }),
+#endif // ANJAY_WITH_LWM2M11
+#if MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == CELLULAR
+                SerialConfigMenuEntry(
+                        "Modem configuration",
+                        [&]() {
+                            modem_config_menu.keep_showing_until_exit_command();
+                            return SerialConfigMenuEntry::MenuLoopAction::
+                                    CONTINUE;
+                        },
+                        [&]() {
+                            return cached_config.modem_config.apn.empty()
+                                           ? "APN not specified"
+                                           : "APN = "
+                                                     + cached_config
+                                                               .modem_config
+                                                               .apn;
+                        }),
+#endif // MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == CELLULAR
+                SerialConfigMenuEntry("Load default configuration",
+                                      [&]() {
+                                          cached_config = Lwm2mConfig();
+                                          return SerialConfigMenuEntry::
+                                                  MenuLoopAction::CONTINUE;
+                                      }),
+                SerialConfigMenuEntry(
+                        "Exit & save changes",
+                        [&]() {
+                            config = cached_config;
+                            return SerialConfigMenuEntry::MenuLoopAction::EXIT;
+                        }),
+                SerialConfigMenuEntry("Exit & discard changes", []() {
+                    return SerialConfigMenuEntry::MenuLoopAction::EXIT;
+                })
+    });
 
     main_menu.keep_showing_until_exit_command();
 }
@@ -311,26 +385,27 @@ namespace {
 
 #if MBED_CONF_APP_WITH_DTLS
 constexpr anjay_security_mode_t INITIAL_SECURITY_MODE = ANJAY_SECURITY_PSK;
-#else
+#else  // MBED_CONF_APP_WITH_DTLS
 constexpr anjay_security_mode_t INITIAL_SECURITY_MODE = ANJAY_SECURITY_NOSEC;
-#endif
+#endif // MBED_CONF_APP_WITH_DTLS
 #if MBED_CONF_APP_WITH_BS_SERVER
 constexpr Lwm2mServerConfigStatus INITIAL_BS_SERVER_CONFIG_STATUS =
         Lwm2mServerConfigStatus::ENABLED;
-#else
+#else  // MBED_CONF_APP_WITH_BS_SERVER
 constexpr Lwm2mServerConfigStatus INITIAL_BS_SERVER_CONFIG_STATUS =
         Lwm2mServerConfigStatus::DISABLED;
-#endif
+#endif // MBED_CONF_APP_WITH_BS_SERVER
 #if MBED_CONF_APP_WITH_RG_SERVER
 constexpr Lwm2mServerConfigStatus INITIAL_RG_SERVER_CONFIG_STATUS =
         Lwm2mServerConfigStatus::ENABLED;
-#else
+#else  // MBED_CONF_APP_WITH_RG_SERVER
 constexpr Lwm2mServerConfigStatus INITIAL_RG_SERVER_CONFIG_STATUS =
         Lwm2mServerConfigStatus::DISABLED;
-#endif
+#endif // MBED_CONF_APP_WITH_RG_SERVER
 
 } // namespace
 
+#if MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == CELLULAR
 ModemConfig::ModemConfig()
         :
 #ifdef MBED_CONF_NSAPI_DEFAULT_CELLULAR_APN
@@ -360,6 +435,7 @@ ModemConfig::ModemConfig()
 #endif // MBED_CONF_CELLULAR_RADIO_ACCESS_TECHNOLOGY
 {
 }
+#endif // MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == CELLULAR
 
 Lwm2mConfig::Lwm2mConfig()
         : Lwm2mConfig(Lwm2mServerConfig(INITIAL_BS_SERVER_CONFIG_STATUS,
@@ -372,50 +448,13 @@ Lwm2mConfig::Lwm2mConfig()
                                         LWM2M_URI,
                                         PSK_IDENTITY,
                                         PSK_KEY),
+                      false,
                       AVS_LOG_DEBUG
-          ) {
-}
-
-#ifdef COMPONENT_QSPIF
-constexpr size_t CONFIG_PERSISTENCE_SIZE = 8192;
-
-
-Lwm2mConfigPersistence::QspiUtils::QspiUtils(BlockDevice *bd,
-                                             bd_addr_t start,
-                                             bd_addr_t stop)
-        : sliced_qspi(bd, start, stop), store(&sliced_qspi) {
-    sliced_qspi.init();
-    store.init();
-}
-
-Lwm2mConfigPersistence::QspiUtils::~QspiUtils() {
-    store.deinit();
-    sliced_qspi.deinit();
-}
-Lwm2mConfigPersistence::Lwm2mConfigPersistence()
-        : qspi_(QSPI_FLASH1_IO0,
-                QSPI_FLASH1_IO1,
-                QSPI_FLASH1_IO2,
-                QSPI_FLASH1_IO3,
-                QSPI_FLASH1_SCK,
-                QSPI_FLASH1_CSN,
-                QSPIF_POLARITY_MODE_0),
-          utils_() {
-    qspi_.init();
-    const bd_addr_t config_persistence_addr_begin =
-            qspi_.size() - CONFIG_PERSISTENCE_SIZE;
-    const bd_addr_t config_persistence_addr_end = qspi_.size();
-
-    MBED_ASSERT(config_persistence_addr_end <= qspi_.size());
-    MBED_ASSERT(config_persistence_addr_begin <= config_persistence_addr_end);
-
-    utils_ = std::make_unique<Lwm2mConfigPersistence::QspiUtils>(
-            &qspi_, config_persistence_addr_begin, config_persistence_addr_end);
-}
-
-Lwm2mConfigPersistence::~Lwm2mConfigPersistence() {
-    utils_.reset();
-    qspi_.deinit();
+#ifdef ANJAY_WITH_LWM2M11
+                      ,
+                      ANJAY_LWM2M_VERSION_1_1
+#endif // ANJAY_WITH_LWM2M11
+        ) {
 }
 
 namespace config_persistence_keys {
@@ -431,7 +470,11 @@ const char *rg_server_uri = "rg_server_uri";
 const char *rg_server_psk_identity = "rg_server_psk_identity";
 const char *rg_server_psk_key = "rg_server_psk_key";
 
+const char *persistence_enabled = "persistence_enabled";
 const char *log_level = "log_level";
+#ifdef ANJAY_WITH_LM2M11
+const char *maximum_version = "maximum_version";
+#endif // ANJAY_WITH_LWM2M11
 
 const char *apn = "apn";
 const char *username = "username";
@@ -440,17 +483,36 @@ const char *sim_pin_code = "sim_pin_code";
 const char *rat = "rat";
 } // namespace config_persistence_keys
 
+namespace {
+
+#define KV_KEY_PREFIX ("/" AVS_QUOTE_MACRO(MBED_CONF_STORAGE_DEFAULT_KV) "/")
+
+string kv_key_wrap(const char *key) {
+    static const string prefix = KV_KEY_PREFIX;
+    return prefix + key;
+}
+
 template <typename T>
-int load_key(TDBStore &store, const char *key, T &loaded_value) {
-    return store.get(key, &loaded_value, sizeof(loaded_value));
+int load_key(const char *key, T &loaded_value) {
+    size_t actual_size;
+    int result;
+    if ((result = kv_get(kv_key_wrap(key).c_str(), &loaded_value,
+                         sizeof(loaded_value), &actual_size))) {
+        return result;
+    }
+    if (actual_size != sizeof(loaded_value)) {
+        return MBED_ERROR_INVALID_DATA_DETECTED;
+    }
+    return 0;
 }
 
 template <>
-int load_key(TDBStore &store, const char *key, std::string &loaded_value) {
+int load_key(const char *key, string &loaded_value) {
     char buffer[128];
     size_t actual_size;
     int result;
-    if ((result = store.get(key, buffer, sizeof(buffer), &actual_size))) {
+    if ((result = kv_get(kv_key_wrap(key).c_str(), buffer, sizeof(buffer),
+                         &actual_size))) {
         return result;
     }
     loaded_value = string(buffer, actual_size);
@@ -458,78 +520,77 @@ int load_key(TDBStore &store, const char *key, std::string &loaded_value) {
 }
 
 template <typename T>
-int save_key(TDBStore &store, const char *key, const T &value) {
-    return store.set(key, &value, sizeof(value), 0);
+int save_key(const char *key, const T &value) {
+    return kv_set(kv_key_wrap(key).c_str(), &value, sizeof(value), 0);
 }
 
 template <>
-int save_key(TDBStore &store, const char *key, const string &value) {
-    return store.set(key, value.c_str(), value.length(), 0);
+int save_key(const char *key, const string &value) {
+    return kv_set(kv_key_wrap(key).c_str(), value.c_str(), value.length(), 0);
 }
 
 template <typename T>
 int key_persistence(Lwm2mConfigPersistence::Direction direction,
-                    TDBStore &store,
                     const char *key,
                     T &value) {
     switch (direction) {
     case Lwm2mConfigPersistence::Direction::STORE:
-        return save_key(store, key, value);
+        return save_key(key, value);
     case Lwm2mConfigPersistence::Direction::RESTORE:
-        return load_key(store, key, value);
+        return load_key(key, value);
     };
     AVS_UNREACHABLE("invalid enum value");
     return -1;
 }
+
+} // namespace
 
 int Lwm2mConfigPersistence::persistence(Direction direction,
                                         Lwm2mConfig &config) {
     using namespace config_persistence_keys;
     int result;
     (void) ((direction == Lwm2mConfigPersistence::Direction::STORE
-             && (result = utils_->store.reset()))
-            || (result = key_persistence(direction, utils_->store,
-                                         bs_server_status,
+             && (result = kv_reset(KV_KEY_PREFIX)))
+            || (result = key_persistence(direction, bs_server_status,
                                          config.bs_server_config.status))
-            || (result = key_persistence(direction, utils_->store,
-                                         bs_server_security_mode,
+            || (result = key_persistence(direction, bs_server_security_mode,
                                          config.bs_server_config.security_mode))
-            || (result =
-                        key_persistence(direction, utils_->store, bs_server_uri,
-                                        config.bs_server_config.server_uri))
-            || (result = key_persistence(direction, utils_->store,
-                                         bs_server_psk_identity,
+            || (result = key_persistence(direction, bs_server_uri,
+                                         config.bs_server_config.server_uri))
+            || (result = key_persistence(direction, bs_server_psk_identity,
                                          config.bs_server_config.psk_identity))
-            || (result = key_persistence(direction, utils_->store,
-                                         bs_server_psk_key,
+            || (result = key_persistence(direction, bs_server_psk_key,
                                          config.bs_server_config.psk_key))
-            || (result = key_persistence(direction, utils_->store,
-                                         rg_server_status,
+            || (result = key_persistence(direction, rg_server_status,
                                          config.rg_server_config.status))
-            || (result = key_persistence(direction, utils_->store,
-                                         rg_server_security_mode,
+            || (result = key_persistence(direction, rg_server_security_mode,
                                          config.rg_server_config.security_mode))
-            || (result =
-                        key_persistence(direction, utils_->store, rg_server_uri,
-                                        config.rg_server_config.server_uri))
-            || (result = key_persistence(direction, utils_->store,
-                                         rg_server_psk_identity,
+            || (result = key_persistence(direction, rg_server_uri,
+                                         config.rg_server_config.server_uri))
+            || (result = key_persistence(direction, rg_server_psk_identity,
                                          config.rg_server_config.psk_identity))
-            || (result = key_persistence(direction, utils_->store,
-                                         rg_server_psk_key,
+            || (result = key_persistence(direction, rg_server_psk_key,
                                          config.rg_server_config.psk_key))
-            || (result = key_persistence(direction, utils_->store, log_level,
-                                         config.log_level))
-            || (result = key_persistence(direction, utils_->store, apn,
+            || (result = key_persistence(direction, persistence_enabled,
+                                         config.persistence_enabled))
+            || (result =
+                        key_persistence(direction, log_level, config.log_level))
+#ifdef ANJAY_WITH_LM2M11
+            || (result = key_persistence(direction, maximum_version,
+                                         config.maximum_version))
+#endif // ANJAY_WITH_LWM2M11
+#if MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == CELLULAR
+            || (result = key_persistence(direction, apn,
                                          config.modem_config.apn))
-            || (result = key_persistence(direction, utils_->store, username,
+            || (result = key_persistence(direction, username,
                                          config.modem_config.username))
-            || (result = key_persistence(direction, utils_->store, password,
+            || (result = key_persistence(direction, password,
                                          config.modem_config.password))
-            || (result = key_persistence(direction, utils_->store, sim_pin_code,
+            || (result = key_persistence(direction, sim_pin_code,
                                          config.modem_config.sim_pin_code))
-            || (result = key_persistence(direction, utils_->store, rat,
-                                         config.modem_config.rat)));
+            || (result = key_persistence(direction, rat,
+                                         config.modem_config.rat))
+#endif // MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == CELLULAR
+    );
     return result;
 }
-#endif // COMPONENT_QSPIF

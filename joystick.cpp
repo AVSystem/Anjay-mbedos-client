@@ -38,37 +38,37 @@
 
 #ifdef TARGET_DISCO_L496AG
 
-#    define JOYSTICK_OBJ_LOG(...) avs_log(joystick_obj, __VA_ARGS__)
+#define JOYSTICK_OBJ_LOG(...) avs_log(joystick_obj, __VA_ARGS__)
 
 /**
  * Digital Input State: R, Single, Optional
  * type: boolean, range: N/A, unit: N/A
  * The current state of a digital input.
  */
-#    define RID_DIGITAL_INPUT_STATE 5500
+#define RID_DIGITAL_INPUT_STATE 5500
 
 /**
  * Digital Input Counter: R, Single, Optional
  * type: integer, range: N/A, unit: N/A
  * The number of times the input transitions from 0 to 1.
  */
-#    define RID_DIGITAL_INPUT_COUNTER 5501
+#define RID_DIGITAL_INPUT_COUNTER 5501
 
 /**
  * X Value: R, Single, Optional
  * type: float, range: N/A, unit: N/A
  * The measured value along the X axis.
  */
-#    define RID_X_VALUE 5702
+#define RID_X_VALUE 5702
 
 /**
  * Y Value: R, Single, Optional
  * type: float, range: N/A, unit: N/A
  * The measured value along the Y axis.
  */
-#    define RID_Y_VALUE 5703
+#define RID_Y_VALUE 5703
 
-#    define JOYSTICK_OID 3345
+#define JOYSTICK_OID 3345
 
 namespace {
 
@@ -253,7 +253,7 @@ const anjay_dm_object_def_t **multiple_axis_joystick_object_create(void) {
     }
     obj->def = &OBJ_DEF;
 
-    new (&obj->joystick) Joystick(USER_BUTTON, PI_9, PF_11, PI_8, PI_10);
+    new (&obj->joystick) Joystick(BUTTON1, PI_9, PF_11, PI_8, PI_10);
     return &obj->def;
 }
 

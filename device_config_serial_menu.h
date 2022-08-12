@@ -19,11 +19,6 @@
 
 #include "serial_menu.h"
 #include <CellularNetwork.h>
-#ifdef COMPONENT_QSPIF
-#include <QSPIFBlockDevice.h>
-#include <SlicingBlockDevice.h>
-#include <TDBStore.h>
-#endif // COMPONENT_QSPIF
 #include <anjay/anjay_config.h>
 #include <anjay/dm.h>
 #include <anjay/security.h>
@@ -57,6 +52,8 @@ struct Lwm2mServerConfig {
     anjay_security_instance_t as_security_instance(anjay_ssid_t ssid) const;
 };
 
+#define CELLULAR 0xDEADBEEF
+#if MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == CELLULAR
 struct ModemConfig {
     std::string apn;
     std::string username;
@@ -66,21 +63,39 @@ struct ModemConfig {
 
     ModemConfig();
 };
+#endif // MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == CELLULAR
 
 struct Lwm2mConfig {
     Lwm2mServerConfig bs_server_config;
     Lwm2mServerConfig rg_server_config;
+    bool persistence_enabled;
     avs_log_level_t log_level;
+#ifdef ANJAY_WITH_LWM2M11
+    anjay_lwm2m_version_t maximum_version;
+#endif // ANJAY_WITH_LWM2M11
+#if MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == CELLULAR
     ModemConfig modem_config;
+#endif // MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == CELLULAR
 
     Lwm2mConfig(Lwm2mServerConfig &&bs_server_config,
                 Lwm2mServerConfig &&rg_server_config,
+                bool persistence_enabled,
                 avs_log_level_t log_level
+#ifdef ANJAY_WITH_LWM2M11
+                ,
+                anjay_lwm2m_version_t maximum_version
+#endif // ANJAY_WITH_LWM2M11
                 )
             : bs_server_config(std::move(bs_server_config)),
               rg_server_config(std::move(rg_server_config)),
+              persistence_enabled(persistence_enabled),
               log_level(log_level)
-              {}
+#ifdef ANJAY_WITH_LWM2M11
+              ,
+              maximum_version(maximum_version)
+#endif // ANJAY_WITH_LWM2M11
+    {
+    }
 
     Lwm2mConfig();
 };
@@ -89,25 +104,10 @@ bool should_show_menu(avs_time_duration_t max_wait_time);
 
 void show_menu_and_maybe_update_config(Lwm2mConfig &config);
 
-#ifdef COMPONENT_QSPIF
 class Lwm2mConfigPersistence {
-    QSPIFBlockDevice qspi_;
-
-    struct QspiUtils {
-        mbed::SlicingBlockDevice sliced_qspi;
-        mbed::TDBStore store;
-
-        QspiUtils(BlockDevice *bd, bd_addr_t start, bd_addr_t stop);
-        ~QspiUtils();
-    };
-    std::unique_ptr<QspiUtils> utils_;
-
 public:
     enum class Direction { STORE, RESTORE };
-    Lwm2mConfigPersistence();
-    ~Lwm2mConfigPersistence();
     int persistence(Direction direction, Lwm2mConfig &config);
 };
-#endif // COMPONENT_QSPIF
 
 #endif // DEVICE_CONFIG_SERIAL_MENU_H

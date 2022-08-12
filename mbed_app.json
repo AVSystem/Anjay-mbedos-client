@@ -1,46 +1,86 @@
 {
-  "macros": [
-    "SENSORS_IKS01A2=0",
-    "__STDC_FORMAT_MACROS",
-    "MBED_CPU_STATS_ENABLED=1",
-    "MBED_HEAP_STATS_ENABLED=1",
-    "MBED_MEM_TRACING_ENABLED=1",
-    "MBED_STACK_STATS_ENABLED=1",
-    "MBEDTLS_MD5_C=1"
-  ],
-  "target_overrides": {
-    "*": {
-      "cellular.radio-access-technology": "CellularNetwork::RadioAccessTechnology::RAT_GSM",
-      "mbed-trace.enable": 1,
-      "mbed-trace.max-level": "TRACE_LEVEL_DEBUG",
-      "nsapi.default-cellular-apn": "\"Plus\"",
-      "platform.stdio-baud-rate": 115200,
-      "platform.stdio-convert-newlines": 1,
-      "target.OUTPUT_EXT": "bin",
-      "target.app_offset": "0x10000"
+    "macros": [
+        "SENSORS_IKS01A2=0",
+        "__STDC_FORMAT_MACROS",
+        "MBED_CPU_STATS_ENABLED=1",
+        "MBED_HEAP_STATS_ENABLED=1",
+        "MBED_MEM_TRACING_ENABLED=1",
+        "MBED_STACK_STATS_ENABLED=1",
+        "MBEDTLS_MD5_C=1"
+    ],
+    "target_overrides": {
+        "*": {
+            "cellular.radio-access-technology": "CellularNetwork::RadioAccessTechnology::RAT_GSM",
+            "mbed-trace.enable": 1,
+            "mbed-trace.max-level": "TRACE_LEVEL_DEBUG",
+            "nsapi.default-cellular-apn": "\"Plus\"",
+            "platform.stdio-baud-rate": 115200,
+            "platform.stdio-convert-newlines": 1
+        },
+        "DISCO_L496AG": {
+            "stmod_cellular.provide-default": "true",
+            "storage.storage_type": "TDB_INTERNAL",
+            "storage_tdb_internal.internal_base_address": "(MBED_ROM_START + 0xF0000)",
+            "storage_tdb_internal.internal_size": "0x10000",
+            "target.components_add": [
+                "STMOD_CELLULAR"
+            ],
+            "target.network-default-interface-type": "CELLULAR",
+            "target.macros_add": [
+                "CELLULAR_DEVICE=STModCellular"
+            ],
+            "target.restrict_size": "0xF0000"
+        },
+        "NRF52840_DK": {
+            "cellular.use-sms": true,
+            "QUECTEL_BG96.provide-default": 1,
+            "QUECTEL_BG96.pwr": "D6",
+            "QUECTEL_BG96.rst": "D5",
+            "QUECTEL_BG96.rx": "D7",
+            "QUECTEL_BG96.tx": "D8",
+            "target.network-default-interface-type": "CELLULAR",
+            "target.macros_add": [
+                "MBEDTLS_CONFIG_HW_SUPPORT",
+                "NRF_CRYPTO_BACKEND_CC310_ENABLED=1",
+                "NRF_CRYPTO_BACKEND_MICRO_ECC_ENABLED=0",
+                "NRF_CRYPTO_ENABLED=1",
+                "MBEDTLS_AES_ALT",
+                "MBEDTLS_CCM_ALT",
+                "MBEDTLS_CMAC_ALT",
+                "MBEDTLS_PLATFORM_SETUP_TEARDOWN_ALT",
+                "MBEDTLS_SHA1_ALT",
+                "MBEDTLS_SHA256_ALT"
+            ]
+        },
+        "NUCLEO_F429ZI": {
+            "anjay-mbed-fota.enable": true,
+            "storage_tdb_internal.internal_base_address": null,
+            "storage_tdb_internal.internal_size": null,
+            "target.extra_labels_add": [
+                "BL_INTERNAL_FLASH"
+            ],
+            "target.app_offset": "0x8200",
+            "target.restrict_size": "0xF7E00"
+        }
     },
-    "DISCO_L496AG": {
-      "stmod_cellular.provide-default": "true",
-      "target.components_add": [
-        "STMOD_CELLULAR"
-      ],
-      "target.network-default-interface-type": "CELLULAR",
-      "target.macros_add": [
-        "CELLULAR_DEVICE=STModCellular"
-      ]
+    "config": {
+        "endpoint_name": "\"urn:dev:os:anjay-mbedos-test\"",
+        "rg_nosec_addr": "\"coap://eu.iot.avsystem.cloud:5683\"",
+        "rg_dtls_addr": "\"coaps://eu.iot.avsystem.cloud:5684\"",
+        "bs_nosec_addr": "\"coap://eu.iot.avsystem.cloud:5693\"",
+        "bs_dtls_addr": "\"coaps://eu.iot.avsystem.cloud:5684\"",
+        "with_rg_server": false,
+        "with_bs_server": true,
+        "with_dtls": false,
+        "psk_identity": "\"***PLEASE SET PSK IDENTITY HERE***\"",
+        "psk_key": "\"***PLEASE SET PSK KEY HERE***\"",
+        "sms_binding_local_phone_number": "\"48607529891\"",
+        "sms_binding_server_phone_number": "\"48605231697\"",
+        "send_interval_ms": 20000,
+        "serial_menu_echo": true,
+        "with_est": "false",
+        "est_client_pub_cert": "b64+encoded+certificate+here",
+        "est_client_priv_key": "b64+encoded+private+key+here",
+        "est_server_pub_cert": "b64+encoded+certificate+here"
     }
-  },
-  "config": {
-    "endpoint_name": "\"urn:dev:os:anjay-mbedos-test\"",
-    "rg_nosec_addr": "\"coap://try-anjay.avsystem.com:5683\"",
-    "rg_dtls_addr": "\"coaps://try-anjay.avsystem.com:5684\"",
-    "bs_nosec_addr": "\"coap://try-anjay.avsystem.com:5693\"",
-    "bs_dtls_addr": "\"coaps://try-anjay.avsystem.com:5684\"",
-    "with_rg_server": false,
-    "with_bs_server": true,
-    "with_dtls": false,
-    "psk_identity": "\"***PLEASE SET PSK IDENTITY HERE***\"",
-    "psk_key": "\"***PLEASE SET PSK KEY HERE***\"",
-    "serial_menu_echo": true
-  }
 }

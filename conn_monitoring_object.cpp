@@ -282,15 +282,25 @@ static int resource_read(anjay_t *anjay,
         assert(riid == ANJAY_ID_INVALID);
         return anjay_ret_i32(ctx, 255);
 
-    case RID_IP_ADDRESSES:
+    case RID_IP_ADDRESSES: {
         assert(riid == 0);
-        return anjay_ret_string(
-                ctx, ensure_non_null(obj->cellular_context->get_ip_address()));
+        SocketAddress addr;
+        const char *addr_str = nullptr;
+        if (obj->cellular_context->get_ip_address(&addr) == NSAPI_ERROR_OK) {
+            addr_str = addr.get_ip_address();
+        }
+        return anjay_ret_string(ctx, ensure_non_null(addr_str));
+    }
 
-    case RID_ROUTER_IP_ADDRESSES:
+    case RID_ROUTER_IP_ADDRESSES: {
         assert(riid == 0);
-        return anjay_ret_string(
-                ctx, ensure_non_null(obj->cellular_context->get_gateway()));
+        SocketAddress addr;
+        const char *addr_str = nullptr;
+        if (obj->cellular_context->get_gateway(&addr) == NSAPI_ERROR_OK) {
+            addr_str = addr.get_ip_address();
+        }
+        return anjay_ret_string(ctx, ensure_non_null(addr_str));
+    }
 
     case RID_LINK_UTILIZATION:
         assert(riid == ANJAY_ID_INVALID);

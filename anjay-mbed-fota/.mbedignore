@@ -1,0 +1,4 @@
+mbed-cloud-client/fota/mbed_lib.json
+mbed-cloud-client/fota/fota_event_handler.c
+mbed-cloud-client/fota/fota_source_profile_*
+mbed-cloud-client/mbed-client-pal/Source/PAL-Impl/Services-API/*

@@ -175,7 +175,7 @@ static const char *device_manufacturer(void) {
 #elif TARGET_NORDIC
     return "Nordic Semiconductor";
 #else
-#    warning "Add device manufacturer"
+#warning "Add device manufacturer"
     return "Unknown";
 #endif
 }
@@ -183,11 +183,13 @@ static const char *device_manufacturer(void) {
 static const char *model_number(void) {
 #ifdef TARGET_DISCO_L496AG
     return "STM32L496G-DISCO";
+#elif TARGET_NUCLEO_F429ZI
+    return "NUCLEO-F429ZI";
 #elif TARGET_NRF52840_DK
     return "nRF52840 DK";
 #else
-#    warning "Add model number"
-    return "Unknown";
+#warning "Unsupported board, using TARGET_NAME as model number"
+    return MBED_STRINGIFY(TARGET_NAME);
 #endif
 }
 
@@ -214,7 +216,7 @@ static int resource_read(anjay_t *anjay,
 
     case RID_FIRMWARE_VERSION:
         assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_string(ctx, "22.03");
+        return anjay_ret_string(ctx, "22.08-rc1");
 
     case RID_ERROR_CODE:
         assert(riid == 0);

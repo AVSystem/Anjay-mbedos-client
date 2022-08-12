@@ -91,7 +91,7 @@ public:
                    EnumType initial_value,
                    std::initializer_list<EnumNamePair> enum_names_mapping)
             : selected_value_(
-                      init_selected_value(initial_value, enum_names_mapping)),
+                    init_selected_value(initial_value, enum_names_mapping)),
               menu_(init_menu(label, enum_names_mapping)) {}
 
     EnumType show_and_get_value() {
