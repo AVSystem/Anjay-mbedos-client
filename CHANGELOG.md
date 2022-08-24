@@ -1,6 +1,12 @@
 # Changelog
 
-## 22.08-rc1 (Fri 12th, 2022)
+## 22.08 (Aug 24th, 2022)
+
+### Improvements
+- Updated Anjay-mbedos to version 3.1.2,
+  fixing memory leak present in previous version
+
+## 22.08-rc1 (Aug 12th, 2022)
 
 ### Known issues
 - Memory leak in integration layer (heap usage steadily increasing)
@@ -14,7 +20,7 @@
 - Added support for SMS binding (commercial feature)
 
 ### Improvements
-- Updated Anjay-mbedos to version X.XX.X
+- Updated Anjay-mbedos to version 3.1.1
 - Added support for Mbed OS 6 and Mbed CLI 2
 - More sensible model number for unsupported boards is reported in Device object
   now
