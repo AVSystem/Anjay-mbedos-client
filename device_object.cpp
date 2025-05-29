@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2025 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -216,7 +216,7 @@ static int resource_read(anjay_t *anjay,
 
     case RID_FIRMWARE_VERSION:
         assert(riid == ANJAY_ID_INVALID);
-        return anjay_ret_string(ctx, "22.08");
+        return anjay_ret_string(ctx, "25.05");
 
     case RID_ERROR_CODE:
         assert(riid == 0);

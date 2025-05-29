@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2025 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,7 +91,7 @@ public:
                    EnumType initial_value,
                    std::initializer_list<EnumNamePair> enum_names_mapping)
             : selected_value_(
-                    init_selected_value(initial_value, enum_names_mapping)),
+                      init_selected_value(initial_value, enum_names_mapping)),
               menu_(init_menu(label, enum_names_mapping)) {}
 
     EnumType show_and_get_value() {

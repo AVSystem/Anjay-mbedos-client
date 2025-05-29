@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2025 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -330,19 +330,18 @@ void show_menu_and_maybe_update_config(Lwm2mConfig &config) {
                             return log_level_select_menu.get_value_as_string();
                         }),
 #ifdef ANJAY_WITH_LWM2M11
-                SerialConfigMenuEntry(
-                        "LwM2M Version",
-                        [&]() {
-                            cached_config.maximum_version =
-                                    lwm2m_version_select_menu
-                                            .show_and_get_value();
-                            return SerialConfigMenuEntry::MenuLoopAction::
-                                    CONTINUE;
-                        },
-                        [&]() {
-                            return lwm2m_version_select_menu
-                                    .get_value_as_string();
-                        }),
+                SerialConfigMenuEntry("LwM2M Version",
+                                      [&]() {
+                                          cached_config.maximum_version =
+                                                  lwm2m_version_select_menu
+                                                          .show_and_get_value();
+                                          return SerialConfigMenuEntry::
+                                                  MenuLoopAction::CONTINUE;
+                                      },
+                                      [&]() {
+                                          return lwm2m_version_select_menu
+                                                  .get_value_as_string();
+                                      }),
 #endif // ANJAY_WITH_LWM2M11
 #if MBED_CONF_TARGET_NETWORK_DEFAULT_INTERFACE_TYPE == CELLULAR
                 SerialConfigMenuEntry(
@@ -454,7 +453,7 @@ Lwm2mConfig::Lwm2mConfig()
                       ,
                       ANJAY_LWM2M_VERSION_1_1
 #endif // ANJAY_WITH_LWM2M11
-        ) {
+          ) {
 }
 
 namespace config_persistence_keys {

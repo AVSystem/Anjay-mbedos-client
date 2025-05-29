@@ -1,5 +1,12 @@
 # Changelog
 
+## 25.05 (May 29th, 2025)
+
+### Project discontinued.
+
+### Improvements
+- Enabled usage of Mbed OS' PSA experimental API
+
 ## 22.08 (Aug 24th, 2022)
 
 ### Improvements

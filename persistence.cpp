@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 AVSystem <avsystem@avsystem.com>
+ * Copyright 2020-2025 AVSystem <avsystem@avsystem.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,9 +73,9 @@ inline void anjay_est_state_purge(anjay_t *anjay){
            anjay_##Name##_is_modified, anjay_##Name##_purge)
 
 const Target targets[] = {
-    DECL_TARGET(access_control),
     DECL_TARGET(security_object),
     DECL_TARGET(server_object),
+    DECL_TARGET(access_control),
 #if MBED_CONF_APP_WITH_EST
     DECL_TARGET(est_state),
 #endif // MBED_CONF_APP_WITH_EST
@@ -175,7 +175,8 @@ int persist_target(anjay_t *anjay, Target const &target) {
     size_t collected_stream_len;
     if (avs_is_err(target.persist(anjay, stream.get()))
         || avs_is_err(avs_stream_membuf_take_ownership(
-                stream.get(), &collected_stream_ptr, &collected_stream_len))) {
+                   stream.get(), &collected_stream_ptr,
+                   &collected_stream_len))) {
         LOG(ERROR, "Couldn't persist %s", target.name);
         return -1;
     }
